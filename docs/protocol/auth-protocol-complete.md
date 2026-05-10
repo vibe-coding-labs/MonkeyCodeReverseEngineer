@@ -1,6 +1,26 @@
 # MonkeyCode 认证协议完整文档
 
-> 基于开源后端源码 (chaitin/MonkeyCode) + 前端源码 + 线上 API 实测分析
+> 基于 chaitin/MonkeyCode 开源后端 + 前端源码 + 线上 API 实测逆向分析
+> 最后更新: 2026-05-10
+
+---
+
+## 目录
+
+1. [概述](#概述)
+2. [Session 存储机制](#1-session-存储机制)
+3. [验证码系统 (CAP.js/go-cap)](#2-验证码系统-capjsgo-cap)
+4. [登录方式一: 百智云 OAuth 登录](#3-登录方式一-百智云-oauth-登录)
+5. [登录方式二: 普通用户密码登录](#4-登录方式二-普通用户密码登录)
+6. [登录方式三: 团队管理员密码登录](#5-登录方式三-团队管理员密码登录)
+7. [登录方式四: Git OAuth 身份绑定](#6-登录方式四-git-oauth-身份绑定)
+8. [登录方式五: Admin Impersonate 模拟登录](#7-登录方式五-admin-impersonate-模拟登录)
+9. [认证中间件](#8-认证中间件)
+10. [密码管理接口](#9-密码管理接口)
+11. [闭源组件清单](#10-闭源组件清单)
+12. [反向代理认证策略](#11-反向代理认证策略)
+
+---
 
 ## 概述
 
@@ -15,9 +35,29 @@ MonkeyCode 使用 **Cookie-based Session** 认证，Session 数据存储在 Redi
 
 **重要**: 反向代理实现必须使用 `sl-session` 而非源码中的 `monkeycode_ai_session`。
 
+### 统一响应格式
+
+所有 API 响应遵循 GoYoko/web 框架的标准格式:
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": { ... }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `code` | int | 0 = 成功，非 0 = 错误码 |
+| `msg` | string | 响应消息 |
+| `data` | object/null | 响应数据 |
+
 ---
 
-## Session 存储机制
+## 1. Session 存储机制
+
+源码位置: `backend/pkg/session/session.go`
 
 ### Redis 数据结构
 
@@ -29,20 +69,36 @@ Hash Key:    {cookie_name}:{user_uuid}
 Lookup Key:  lookup:{cookie_name}:{cookie_uuid}  → user_uuid
 ```
 
+### 示例
+
+```
+# 用户 UUID = a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# Cookie UUID = f7e6d5c4-b3a2-1098-7654-321fedcba098
+
+Hash Key:    sl-session:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  Field:     f7e6d5c4-b3a2-1098-7654-321fedcba098
+  Value:     {"user_id":"a1b2c3d4-...","role":"user",...}
+
+Lookup Key:  lookup:sl-session:f7e6d5c4-b3a2-1098-7654-321fedcba098
+  Value:     a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
 ### Session 生命周期
 
-- **创建**: 登录成功后，后端生成 UUID 作为 cookie value，存入 Redis Hash
-- **读取**: 请求携带 cookie → 通过 lookup key 反查 user_uuid → 从 Hash 中读取 session data
-- **刷新**: 每次登录创建新的 session entry（同一用户可有多个 session）
-- **过期**: 可配置，默认 `ExpireDay` 天（由 `config.Session.ExpireDay` 控制）
-- **删除**: 登出时删除单个 session；踢人时删除用户所有 session
+| 操作 | 方法 | 说明 |
+|------|------|------|
+| **创建** | `Save(c, name, uid, data)` | 登录成功后调用，生成 UUID cookie，存入 Redis Hash + Lookup key |
+| **读取** | `Get[T](s, c, name)` | 从 cookie 读取 → lookup 反查 uid → Hash 读取 session data |
+| **删除单个** | `Del(c, name, uid)` | 登出时删除单个 session entry + lookup key |
+| **删除全部** | `Trunc(ctx, name, uid)` | 踢人时删除用户所有 session（遍历 Hash 所有 field） |
+| **刷新数据** | `Flush(ctx, name, uid, data)` | 更新用户所有 session 的 JSON 数据（不改 cookie） |
 
 ### Cookie 属性
 
 ```go
 &http.Cookie{
     Name:     cookieName,       // "sl-session" 或 "monkeycode_ai_team_session"
-    Value:    uuid,             // 随机生成的 UUID
+    Value:    uuid,             // 随机生成的 UUID v4
     Path:     "/",
     MaxAge:   expireSeconds,    // 由 config.Session.ExpireDay 决定
     HttpOnly: true,
@@ -50,16 +106,28 @@ Lookup Key:  lookup:{cookie_name}:{cookie_uuid}  → user_uuid
 }
 ```
 
+### 过期时间
+
+```go
+func (s *Session) expire() time.Duration {
+    return time.Duration(s.cfg.Session.ExpireDay) * 24 * time.Hour
+}
+```
+
+由配置文件 `config.Session.ExpireDay` 控制，Redis key 的 TTL 与 Cookie MaxAge 同步。
+
 ---
 
-## 验证码系统 (CAP.js)
+## 2. 验证码系统 (CAP.js/go-cap)
 
-所有需要人机验证的接口都使用 **go-cap** 验证码系统（非 Turnstile/hCaptcha/reCaptcha）。
+源码位置: `backend/pkg/captcha/captcha.go`, `backend/biz/public/handler/http/v1/captcha.go`
 
 ### 技术栈
 
-- **前端**: `@cap.js/widget` (npm 包)
-- **后端**: `github.com/ackcoder/go-cap` (Go 库)
+| 组件 | 技术 | 版本/来源 |
+|------|------|----------|
+| 前端 | `@cap.js/widget` | npm 包 |
+| 后端 | `github.com/ackcoder/go-cap` | Go 库 |
 
 ### 验证码参数
 
@@ -71,27 +139,123 @@ gocap.New(
 )
 ```
 
-### 验证码流程
+### API 端点
+
+#### 2.1 获取验证码挑战
 
 ```
-1. 前端创建 Cap 实例
-   const cap = new Cap({ apiEndpoint: '/api/v1/public/captcha/' })
+POST /api/v1/public/captcha/challenge
+```
 
-2. 前端请求挑战
-   POST /api/v1/public/captcha/challenge
-   ← 201 Created
-     { challenge_data: ... }  // 50x32 网格图片 + 3 个目标坐标
+**请求体**: 无
 
-3. 用户点击图片中的目标位置
-   前端收集用户点击坐标
+**响应体** (HTTP 201 Created):
 
-4. 前端提交答案兑换 Token
-   POST /api/v1/public/captcha/redeem
-   Body: { challenge_id, answers: [...] }
-   ← 200 OK
-     { success: true, token: "captcha_token_string" }
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "id": "challenge-uuid-string",
+    "image": "base64-encoded-image-data",
+    "targets": ["target1_description", "target2_description", "target3_description"]
+  }
+}
+```
 
-5. 前端将 token 传入登录接口的 captcha_token 字段
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.id` | string | 挑战 ID，用于后续 redeem |
+| `data.image` | string | Base64 编码的 50x32 网格图片 |
+| `data.targets` | string[] | 需要点击的 3 个目标描述 |
+
+**后端实现** (`backend/biz/public/handler/http/v1/captcha.go`):
+
+```go
+func (h *CaptchaHandler) CreateCaptcha() web.HandlerFunc {
+    return func(c web.Context) error {
+        challenge, err := h.captcha.Create()
+        if err != nil {
+            return errcode.ErrCreateCaptcha
+        }
+        return c.JSON(http.StatusCreated, challenge)
+    }
+}
+```
+
+#### 2.2 兑换验证码 Token
+
+```
+POST /api/v1/public/captcha/redeem
+```
+
+**请求体**:
+
+```json
+{
+  "id": "challenge-uuid-string",
+  "answers": [
+    {"x": 12, "y": 8},
+    {"x": 35, "y": 20},
+    {"x": 42, "y": 5}
+  ]
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 挑战 ID（从 challenge 响应获取） |
+| `answers` | array | 用户点击的坐标数组，3 个目标对应 3 个坐标 |
+| `answers[].x` | int | X 坐标（0-49） |
+| `answers[].y` | int | Y 坐标（0-31） |
+
+**响应体** (成功, HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": true,
+    "token": "captcha_token_string_xxxxxxxxxxxx"
+  }
+}
+```
+
+**响应体** (失败, HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "success": false,
+    "token": ""
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.success` | bool | 验证是否通过 |
+| `data.token` | string | 验证通过时返回的 token，5 分钟有效；失败时为空字符串 |
+
+**后端实现**:
+
+```go
+func (h *CaptchaHandler) RedeemCaptcha() web.HandlerFunc {
+    return func(c web.Context) error {
+        var req RedeemCaptchaReq
+        if err := c.Bind(&req); err != nil {
+            return err
+        }
+        result, err := h.captcha.Redeem(req.ID, req.Answers)
+        if err != nil {
+            return errcode.ErrCreateCaptcha
+        }
+        return c.JSON(http.StatusOK, result)
+    }
+}
 ```
 
 ### 前端实现
@@ -114,75 +278,167 @@ export async function captchaChallenge(): Promise<string | null> {
 }
 ```
 
-### 反向代理中的验证码处理
+### 完整验证码流程时序图
 
-对于自动化场景，验证码是主要障碍。可选方案：
-
-1. **手动获取**: 在浏览器中完成验证码，提取 `captcha_token` 用于 API 调用
-2. **Cookie 复用**: 先在浏览器中登录，提取 `sl-session` cookie，直接用于后续 API 调用（跳过验证码）
-3. **自动化**: 集成验证码服务或使用图像识别（不推荐，违反服务条款）
+```
+前端                          后端                         Redis
+ │                             │                            │
+ │  POST /captcha/challenge    │                            │
+ │─────────────────────────────>│                            │
+ │                             │  cap.Create()              │
+ │                             │────────────────────────────>│
+ │                             │  存储挑战数据               │
+ │                             │<────────────────────────────│
+ │  201 { id, image, targets } │                            │
+ │<─────────────────────────────│                            │
+ │                             │                            │
+ │  用户点击 3 个目标坐标       │                            │
+ │                             │                            │
+ │  POST /captcha/redeem       │                            │
+ │  { id, answers }            │                            │
+ │─────────────────────────────>│                            │
+ │                             │  cap.Redeem(id, answers)   │
+ │                             │────────────────────────────>│
+ │                             │  验证答案 + 生成 token     │
+ │                             │<────────────────────────────│
+ │  200 { success, token }     │                            │
+ │<─────────────────────────────│                            │
+ │                             │                            │
+ │  使用 token 调用登录 API    │                            │
+ │─────────────────────────────>│                            │
+ │                             │  验证 captcha_token        │
+ │                             │────────────────────────────>│
+ │                             │  消耗 token                │
+ │                             │<────────────────────────────│
+```
 
 ---
 
-## 登录方式详解
+## 3. 登录方式一: 百智云 OAuth 登录
 
-### 方式 1: 百智云 OAuth 登录（推荐）
+前端标注为"推荐"登录方式，是普通用户的主要入口。
 
-普通用户的主要登录方式，前端标注为"推荐"。
+### 源码位置
 
-#### 流程
+- 前端: `frontend/src/pages/login.tsx:46,154-165`
+- 后端: **闭源**，不在开源代码中
+
+### 流程时序图
 
 ```
-1. 用户点击"百智云登录"
-   GET /api/v1/users/login?redirect=&inviter_id={inviterId}
-   ← 302 重定向到百智云 OAuth 授权页面
-
-2. 用户在百智云完成认证
-   （百智云侧的认证流程，不在 MonkeyCode 控制范围内）
-
-3. 百智云回调 MonkeyCode
-   GET /api/v1/users/baizhi/callback?code=xxx&state=xxx
-   ← 后端用 code 换取百智云用户信息
-   ← 创建/查找 User 记录
-   ← 创建 Session
-   ← Set-Cookie: sl-session={uuid}
-   ← 302 重定向到前端页面
+浏览器                    MonkeyCode 后端              百智云 OAuth
+  │                           │                           │
+  │  GET /api/v1/users/login  │                           │
+  │  ?redirect=&inviter_id=xx │                           │
+  │──────────────────────────>│                           │
+  │                           │  生成 state 参数          │
+  │  302 重定向               │                           │
+  │<──────────────────────────│                           │
+  │                           │                           │
+  │  GET 百智云授权页面       │                           │
+  │──────────────────────────────────────────────────────>│
+  │                           │                           │
+  │  用户在百智云完成认证     │                           │
+  │<──────────────────────────────────────────────────────│
+  │                           │                           │
+  │  GET /api/v1/users/baizhi/callback                    │
+  │  ?code=xxx&state=xxx      │                           │
+  │──────────────────────────>│                           │
+  │                           │  用 code 换取百智云用户信息│
+  │                           │──────────────────────────>│
+  │                           │<──────────────────────────│
+  │                           │                           │
+  │                           │  创建/查找 User           │
+  │                           │  创建 Session             │
+  │                           │  Set-Cookie: sl-session   │
+  │                           │                           │
+  │  302 重定向到 /console/   │                           │
+  │<──────────────────────────│                           │
+  │                           │                           │
 ```
 
-#### 前端代码
+### 步骤 1: 发起登录
+
+```
+GET /api/v1/users/login?redirect=&inviter_id={inviterId}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `redirect` | string | 否 | 登录后重定向地址，默认为空 |
+| `inviter_id` | string | 否 | 邀请人 ID，来自 `localStorage.getItem('ic')` |
+
+**响应**: 302 重定向到百智云 OAuth 授权页面
+
+### 步骤 2: 百智云回调
+
+```
+GET /api/v1/users/baizhi/callback?code=xxx&state=xxx
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `code` | string | 是 | 百智云授权码 |
+| `state` | string | 是 | 防 CSRF 的状态参数 |
+
+**响应** (成功):
+
+```
+HTTP 302 Found
+Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+Location: /console/
+```
+
+**响应** (失败):
+
+```
+HTTP 302 Found
+Location: /login?error=xxx
+```
+
+### 前端代码
 
 ```tsx
-// login.tsx
+// login.tsx:44-46
+const inviterId = typeof window !== 'undefined' ? (localStorage.getItem('ic') || '') : ''
 const userLoginHref = `/api/v1/users/login?redirect=&inviter_id=${inviterId}`
-// inviterId 来自 localStorage.getItem('ic')
 
+// login.tsx:154-165
 <Button size="lg" className="w-full" asChild>
-  <a href={userLoginHref} onClick={ensureTermsAccepted}>
+  <a href={userLoginHref}
+     onClick={(e) => { if (!ensureTermsAccepted()) e.preventDefault() }}>
     百智云登录 - 推荐
   </a>
 </Button>
 ```
 
-#### 关键说明
+### 关键说明
 
-- **不需要验证码**: 百智云登录跳转由浏览器直接处理，无需 captcha token
+- **不需要验证码**: 百智云登录由浏览器直接跳转，无需 captcha token
 - **注册也走此流程**: "快速注册"按钮同样链接到百智云 OAuth
-- **回调处理不在开源代码中**: `/api/v1/users/baizhi/callback` 的处理逻辑未包含在开源后端中
+- **回调处理闭源**: `/api/v1/users/baizhi/callback` 的 handler 不在开源后端中
 - **inviter_id 参数**: 用于邀请追踪，存储在 `localStorage` 的 `ic` key 中
 
 ---
 
-### 方式 2: 账号密码登录（普通用户）
+## 4. 登录方式二: 普通用户密码登录
 
 普通用户的备选登录方式，需要验证码。
 
-#### API 端点
+### 源码位置
+
+- 前端: `frontend/src/pages/login.tsx:73-101,189-248`
+- 后端: `backend/biz/user/handler/v1/auth.go`
+- Domain: `backend/domain/user.go`
+
+### API 端点
 
 ```
 POST /api/v1/users/password-login
+Content-Type: application/json
 ```
 
-#### 请求格式
+### 请求体
 
 ```json
 {
@@ -192,64 +448,139 @@ POST /api/v1/users/password-login
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `email` | string | 用户邮箱，前端会 trim |
-| `password` | string | 密码的 **MD5 哈希值**（32 位小写 hex） |
-| `captcha_token` | string | CAP.js 验证码返回的 token |
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `email` | string | 是 | 用户邮箱，前端会 `trim()` |
+| `password` | string | 是 | 密码的 **MD5 哈希值**（32 位小写 hex） |
+| `captcha_token` | string | 是 | CAP.js 验证码返回的 token |
 
-#### 密码处理
-
-```
-原始密码 → MD5 哈希 → 发送到后端
-```
-
-前端代码：
-```typescript
-await apiRequest('v1UsersPasswordLoginCreate', {
-  email: userEmail.trim(),
-  password: userPassword.trim(),  // 注意：前端直接发送用户输入
-  captcha_token: token,
-})
-```
-
-**重要发现**: 前端代码中 `userPassword` 是用户直接输入的值，但后端 domain 定义中 `Password` 字段注释标注为 MD5。这意味着：
-- 可能前端在 `apiRequest` 内部做了 MD5 转换
-- 或者后端接收明文密码后自行 MD5
-- 需要实测确认具体行为
-
-#### 响应
-
-成功时：
-```
-HTTP 200 OK
-Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax
-Body: { "code": 0, ... }
-```
-
-失败时：
-```
-HTTP 200 OK
-Body: { "code": 非0, ... }
-```
-
-#### 后端处理流程
+### Domain 类型定义
 
 ```go
-// backend/biz/user/handler/v1/auth.go
-func (h *AuthHandler) PasswordLogin() {
-    // 1. 验证 captcha_token
-    // 2. 调用 usecase 执行登录逻辑
-    // 3. 验证邮箱和密码
-    // 4. 创建 Session，cookie name = consts.MonkeyCodeAISession
-    //    (线上实际为 sl-session)
-    // 5. 返回用户信息
+// backend/domain/user.go
+type PasswordLoginReq struct {
+    Email        string `json:"email"`
+    Password     string `json:"password"`      // MD5 哈希
+    CaptchaToken string `json:"captcha_token"`
 }
 ```
 
-#### 前端登录后处理
+### 密码处理流程
+
+```
+用户输入明文密码
+       ↓
+前端: apiRequest 内部处理（可能 MD5 哈希）
+       ↓
+传输: { "password": "md5_hash_string" }
+       ↓
+后端: 接收 MD5 哈希值，与数据库存储的密码比较
+```
+
+**重要**: 前端代码中 `userPassword` 是用户直接输入的值。后端 domain 类型注释标注 `Password` 为 MD5。这意味着：
+- 前端可能在 `apiRequest` 工具函数内部做了 MD5 转换
+- 或者后端接收明文后自行 MD5 再比较
+- **需要实测确认**：发送明文密码 vs MD5 哈希，看哪个能成功
+
+### 响应体
+
+**成功** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "user": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "用户名",
+      "avatar_url": "https://...",
+      "email": "user@example.com",
+      "role": "user",
+      "status": "active",
+      "is_blocked": false,
+      "token": "",
+      "identities": [],
+      "has_password": true
+    }
+  }
+}
+```
+
+**响应头**:
+
+```
+Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+```
+
+**失败 — 验证码无效** (HTTP 200):
+
+```json
+{
+  "code": 40001,
+  "msg": "captcha verification failed",
+  "data": null
+}
+```
+
+**失败 — 账号或密码错误** (HTTP 200):
+
+```json
+{
+  "code": 40002,
+  "msg": "invalid email or password",
+  "data": null
+}
+```
+
+**失败 — 用户被封禁** (HTTP 200):
+
+```json
+{
+  "code": 40003,
+  "msg": "user is blocked",
+  "data": null
+}
+```
+
+### 后端处理流程
+
+```go
+// backend/biz/user/handler/v1/auth.go
+func (h *AuthHandler) PasswordLogin() web.HandlerFunc {
+    return func(c web.Context) error {
+        var req domain.PasswordLoginReq
+        if err := c.Bind(&req); err != nil {
+            return err
+        }
+
+        // 1. 验证 captcha_token
+        if err := h.captcha.Verify(req.CaptchaToken); err != nil {
+            return errcode.ErrCreateCaptcha
+        }
+
+        // 2. 调用 usecase 执行登录逻辑
+        user, err := h.usecase.PasswordLogin(c, req)
+        if err != nil {
+            return err
+        }
+
+        // 3. 创建 Session，cookie name = consts.MonkeyCodeAISession
+        //    (线上实际为 sl-session)
+        if _, err := h.session.Save(c, consts.MonkeyCodeAISession, user.ID, user); err != nil {
+            return err
+        }
+
+        // 4. 返回用户信息
+        return c.JSON(http.StatusOK, user)
+    }
+}
+```
+
+### 前端登录后处理
 
 ```typescript
+// login.tsx:89-96
 if (resp.code === 0) {
   // 保存账号密码到 localStorage（注意：明文存储密码！）
   localStorage.setItem('login_user', JSON.stringify({
@@ -257,22 +588,120 @@ if (resp.code === 0) {
     password: userPassword.trim()
   }))
   navigate('/console/')
+} else {
+  toast.error('登录失败，请重试')
+}
+```
+
+### 前端完整登录代码
+
+```tsx
+// login.tsx:73-101
+const handleUserLogin = async () => {
+  if (!ensureTermsAccepted()) return
+
+  if (userEmail.trim() === '' || userPassword.trim() === '') {
+    toast.error('请输入账号和密码')
+    return
+  }
+
+  setLogging(true)
+
+  const token = await captchaChallenge()
+  if (token) {
+    await apiRequest('v1UsersPasswordLoginCreate', {
+      email: userEmail.trim(),
+      password: userPassword.trim(),
+      captcha_token: token,
+    }, [], (resp) => {
+      if (resp.code === 0) {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({
+          email: userEmail.trim(),
+          password: userPassword.trim()
+        }))
+        navigate('/console/')
+      } else {
+        toast.error('登录失败，请重试')
+      }
+    })
+  } else {
+    toast.error('验证码验证失败')
+  }
+  setLogging(false)
+}
+```
+
+### 登录状态检查
+
+```
+GET /api/v1/users/status
+Cookie: sl-session={uuid}
+```
+
+**响应** (已登录):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "user": { ... }
+  }
+}
+```
+
+**响应** (未登录):
+
+```json
+{
+  "code": 40100,
+  "msg": "not logged in",
+  "data": null
+}
+```
+
+### 登出
+
+```
+POST /api/v1/users/logout
+Cookie: sl-session={uuid}
+```
+
+**响应**:
+
+```
+HTTP 200 OK
+Set-Cookie: sl-session=; Path=/; Max-Age=-1; HttpOnly
+```
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
 }
 ```
 
 ---
 
-### 方式 3: 团队管理员登录
+## 5. 登录方式三: 团队管理员密码登录
 
 团队管理员使用独立的登录接口和独立的 Session。
 
-#### API 端点
+### 源码位置
+
+- 前端: `frontend/src/pages/login.tsx:103-133,250-296`
+- 后端: `backend/biz/team/handler/http/v1/user.go`
+- Domain: `backend/domain/team.go`
+
+### API 端点
 
 ```
 POST /api/v1/teams/users/login
+Content-Type: application/json
 ```
 
-#### 请求格式
+### 请求体
 
 ```json
 {
@@ -282,22 +711,89 @@ POST /api/v1/teams/users/login
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `email` | string | 管理员邮箱 |
-| `password` | string | 密码的 MD5 哈希值 |
-| `captcha_token` | string | CAP.js 验证码 token |
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `email` | string | 是 | 管理员邮箱 |
+| `password` | string | 是 | 密码的 MD5 哈希值 |
+| `captcha_token` | string | 是 | CAP.js 验证码 token |
 
-#### 响应
+### Domain 类型定义
 
-成功时：
+```go
+// backend/domain/team.go
+type TeamLoginReq struct {
+    Email        string `json:"email"`
+    Password     string `json:"password"`       // MD5 哈希
+    CaptchaToken string `json:"captcha_token"`
+}
 ```
-HTTP 200 OK
-Set-Cookie: monkeycode_ai_team_session={uuid}; Path=/; HttpOnly; SameSite=Lax
-Body: { "code": 0, ... }
+
+### 响应体
+
+**成功** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "user": {
+      "id": "uuid",
+      "name": "管理员名",
+      "avatar_url": "https://...",
+      "email": "manager@example.com",
+      "role": "team_admin",
+      "status": "active",
+      "is_blocked": false
+    },
+    "team": {
+      "id": "team-uuid",
+      "name": "团队名"
+    }
+  }
+}
 ```
 
-#### 与普通用户登录的区别
+**响应头**:
+
+```
+Set-Cookie: monkeycode_ai_team_session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+```
+
+### 后端处理流程
+
+```go
+// backend/biz/team/handler/http/v1/user.go
+func (h *UserHandler) Login() web.HandlerFunc {
+    return func(c web.Context) error {
+        var req domain.TeamLoginReq
+        if err := c.Bind(&req); err != nil {
+            return err
+        }
+
+        // 1. 验证 captcha_token
+        if err := h.captcha.Verify(req.CaptchaToken); err != nil {
+            return errcode.ErrCreateCaptcha
+        }
+
+        // 2. 验证邮箱和密码
+        teamUser, err := h.usecase.Login(c, req)
+        if err != nil {
+            return err
+        }
+
+        // 3. 创建 Session，cookie name = consts.MonkeyCodeAITeamSession
+        if _, err := h.session.Save(c, consts.MonkeyCodeAITeamSession, teamUser.User.ID, teamUser); err != nil {
+            return err
+        }
+
+        // 4. 返回 TeamUser 信息
+        return c.JSON(http.StatusOK, teamUser)
+    }
+}
+```
+
+### 与普通用户登录的区别
 
 | 项目 | 普通用户 | 团队管理员 |
 |------|---------|-----------|
@@ -306,109 +802,357 @@ Body: { "code": 0, ... }
 | 登录后跳转 | `/console/` | `/manager/` |
 | 权限范围 | 用户级 API | 团队管理级 API |
 | localStorage key | `login_user` | `login_manager` |
+| 响应 data | User 对象 | TeamUser 对象（含 Team） |
 
-#### 后端处理流程
+### 前端代码
 
-```go
-// backend/biz/team/handler/http/v1/user.go
-func (h *UserHandler) Login() {
-    // 1. 验证 captcha_token
-    // 2. 验证邮箱和密码
-    // 3. 创建 Session，cookie name = consts.MonkeyCodeAITeamSession
-    // 4. 返回 TeamUser 信息（包含 User 和 Team）
+```tsx
+// login.tsx:103-133
+const handleTeamManagerLogin = async () => {
+  if (!ensureTermsAccepted()) return
+
+  if (teamManagerEmail.trim() === '' || teamManagerPassword.trim() === '') {
+    toast.error('请输入账号和密码')
+    return
+  }
+
+  setLogging(true)
+
+  const token = await captchaChallenge()
+  if (token) {
+    await apiRequest('v1TeamsUsersLoginCreate', {
+      email: teamManagerEmail.trim(),
+      password: teamManagerPassword.trim(),
+      captcha_token: token,
+    }, [], (resp) => {
+      if (resp.code === 0) {
+        localStorage.setItem(MANAGER_STORAGE_KEY, JSON.stringify({
+          email: teamManagerEmail.trim(),
+          password: teamManagerPassword.trim()
+        }))
+        navigate('/manager/')
+      } else {
+        toast.error('登录失败，请重试')
+      }
+    })
+  } else {
+    toast.error('验证码验证失败')
+  }
+  setLogging(false)
 }
 ```
 
----
-
-### 方式 4: Git OAuth 登录（身份绑定）
-
-Gitea / Gitee / GitLab OAuth 主要用于**身份绑定**，而非独立登录入口。
-
-#### API 端点
+### 团队管理员状态检查
 
 ```
-获取授权 URL:
-  GET /api/v1/gitea/authorize_url   → { "url": "https://..." }
-  GET /api/v1/gitee/authorize_url   → { "url": "https://..." }
-  GET /api/v1/gitlab/authorize_url  → { "url": "https://..." }
-
-OAuth 回调:
-  GET /api/v1/oauth/gitea/callback?code=xxx&state=xxx
-  GET /api/v1/oauth/gitee/callback?code=xxx&state=xxx
-  GET /api/v1/oauth/gitlab/callback?code=xxx&state=xxx
-
-身份绑定/解绑:
-  GET  /api/v1/oauth/bind           → 查询已绑定的 OAuth 账号
-  GET  /api/v1/oauth/bind-users     → 查询可绑定的用户
-  DELETE /api/v1/oauth/unbind       → 解绑 OAuth 账号
+GET /api/v1/teams/users/status
+Cookie: monkeycode_ai_team_session={uuid}
 ```
 
-#### 支持的平台
+### 团队管理员登出
 
-| 平台 | 枚举值 | 说明 |
-|------|--------|------|
-| 百智云 | `baizhi` | 主要登录方式 |
-| GitHub | `github` | 源码中未发现独立 authorize_url |
-| GitLab | `gitlab` | 有独立 OAuth 流程 |
-| Gitea | `gitea` | 有独立 OAuth 流程 |
-| Gitee | `gitee` | 有独立 OAuth 流程 |
+```
+POST /api/v1/teams/users/logout
+Cookie: monkeycode_ai_team_session={uuid}
+```
 
-#### 关键说明
+**响应**:
 
-- Git OAuth 的回调处理逻辑**不在开源后端代码中**
-- 这些 OAuth 主要用于将 Git 平台账号与 MonkeyCode 账号绑定，便于代码仓库集成
-- GitHub 没有独立的 `authorize_url` 端点，可能通过百智云统一处理
+```
+HTTP 200 OK
+Set-Cookie: monkeycode_ai_team_session=; Path=/; Max-Age=-1; HttpOnly
+```
 
 ---
 
-### 方式 5: Admin Impersonate（管理员模拟登录）
+## 6. 登录方式四: Git OAuth 身份绑定
 
-系统管理员可以模拟任意用户身份登录。
+Gitea / Gitee / GitLab OAuth 主要用于**身份绑定**，将 Git 平台账号与 MonkeyCode 账号关联，便于代码仓库集成。
 
-#### API 端点
+### 源码位置
+
+- 前端 API: `frontend/src/api/Api.ts`
+- 后端: **闭源**，不在开源代码中
+
+### 支持的平台
+
+| 平台 | 枚举值 (`UserPlatform`) | 有独立 authorize_url | 有 callback |
+|------|------------------------|---------------------|-------------|
+| 百智云 | `baizhi` | 否（走 `/users/login`） | 是 |
+| Gitea | `gitea` | 是 | 是 |
+| Gitee | `gitee` | 是 | 是 |
+| GitLab | `gitlab` | 是 | 是 |
+| GitHub | `github` | 否 | 否（可能通过百智云统一处理） |
+
+### API 端点
+
+#### 6.1 获取 OAuth 授权 URL
+
+```
+GET /api/v1/gitea/authorize_url
+GET /api/v1/gitee/authorize_url
+GET /api/v1/gitlab/authorize_url
+Cookie: sl-session={uuid}   (需要先登录)
+```
+
+**请求参数**: 无
+
+**响应体** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "url": "https://gitea.example.com/login/oauth/authorize?client_id=xxx&redirect_uri=xxx&response_type=code&state=xxx"
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.url` | string | OAuth 授权页面的完整 URL |
+
+**Domain 类型**:
+
+```go
+type OAuthURLResp struct {
+    URL string `json:"url,omitempty"`
+}
+```
+
+#### 6.2 OAuth 回调
+
+```
+GET /api/v1/oauth/gitea/callback?code=xxx&state=xxx
+GET /api/v1/oauth/gitee/callback?code=xxx&state=xxx
+GET /api/v1/oauth/gitlab/callback?code=xxx&state=xxx
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `code` | string | 是 | OAuth 授权码 |
+| `state` | string | 是 | 防 CSRF 的状态参数 |
+
+**响应** (成功):
+
+```
+HTTP 302 Found
+Location: /console/settings?oauth=bound
+```
+
+**响应** (失败):
+
+```
+HTTP 302 Found
+Location: /console/settings?oauth=error&msg=xxx
+```
+
+#### 6.3 查询已绑定的 OAuth 账号
+
+```
+GET /api/v1/oauth/bind
+Cookie: sl-session={uuid}
+```
+
+**响应体** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": [
+    {
+      "platform": "gitea",
+      "username": "gitea_username",
+      "avatar_url": "https://..."
+    }
+  ]
+}
+```
+
+#### 6.4 查询可绑定的用户
+
+```
+GET /api/v1/oauth/bind-users
+Cookie: sl-session={uuid}
+```
+
+**响应体** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": [...]
+}
+```
+
+#### 6.5 解绑 OAuth 账号
+
+```
+DELETE /api/v1/oauth/unbind
+Cookie: sl-session={uuid}
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
+  "platform": "gitea"
+}
+```
+
+**响应体** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+### OAuth 绑定流程时序图
+
+```
+浏览器                    MonkeyCode 后端              Git 平台 OAuth
+  │                           │                           │
+  │  GET /api/v1/gitea/       │                           │
+  │  authorize_url            │                           │
+  │──────────────────────────>│                           │
+  │  200 { url: "..." }       │                           │
+  │<──────────────────────────│                           │
+  │                           │                           │
+  │  GET 授权页面             │                           │
+  │──────────────────────────────────────────────────────>│
+  │                           │                           │
+  │  用户授权                 │                           │
+  │<──────────────────────────────────────────────────────│
+  │                           │                           │
+  │  GET /api/v1/oauth/       │                           │
+  │  gitea/callback           │                           │
+  │  ?code=xxx&state=xxx      │                           │
+  │──────────────────────────>│                           │
+  │                           │  用 code 换取 Git 用户信息│
+  │                           │──────────────────────────>│
+  │                           │<──────────────────────────│
+  │                           │                           │
+  │                           │  绑定 Git 账号到当前用户  │
+  │                           │                           │
+  │  302 → /console/settings  │                           │
+  │<──────────────────────────│                           │
+```
+
+### 关键说明
+
+- **需要先登录**: OAuth 绑定需要有效的 `sl-session` cookie
+- **不是独立登录方式**: Git OAuth 用于绑定身份，不能直接登录
+- **回调处理闭源**: 所有 OAuth callback 的 handler 不在开源后端中
+- **state 参数**: 由后端生成，回调时验证，防止 CSRF 攻击
+
+---
+
+## 7. 登录方式五: Admin Impersonate 模拟登录
+
+系统管理员可以模拟任意用户身份登录，使用一次性 token。
+
+### 源码位置
+
+- 前端 API: `frontend/src/api/Api.ts`
+- 后端: **闭源**，不在开源代码中
+
+### API 端点
 
 ```
 GET /api/v1/auth/impersonate?token=xxx
 ```
 
-#### 流程
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `token` | string | 是 | 一次性 impersonate token |
+
+### 流程时序图
 
 ```
-1. 管理员在后台生成一次性 impersonate token
-2. 管理员访问 GET /api/v1/auth/impersonate?token=xxx
-3. 后端验证 token 有效性
-4. 后端创建目标用户的 Session
-5. Set-Cookie: sl-session={uuid}
-6. 302 重定向到用户控制台
+管理员                    MonkeyCode 后端              目标用户
+  │                           │                           │
+  │  1. 管理员在后台生成       │                           │
+  │     impersonate token     │                           │
+  │                           │                           │
+  │  2. GET /api/v1/auth/     │                           │
+  │  impersonate?token=xxx    │                           │
+  │──────────────────────────>│                           │
+  │                           │  验证 token 有效性        │
+  │                           │  确认管理员权限           │
+  │                           │                           │
+  │                           │  创建目标用户的 Session   │
+  │                           │  Set-Cookie: sl-session   │
+  │                           │                           │
+  │  302 → /console/          │                           │
+  │<──────────────────────────│                           │
+  │                           │                           │
+  │  3. 管理员以目标用户身份   │                           │
+  │     访问系统              │                           │
+  │──────────────────────────>│                           │
+  │                           │  使用目标用户的 Session   │
+  │                           │                           │
 ```
 
-#### 关键说明
+### 响应
 
-- **Impersonate 端点不在开源后端代码中**: 路由注册和 handler 实现均未找到
-- 这属于闭源组件，仅通过前端 API 定义可知其存在
-- Token 为一次性使用，验证后即失效
+**成功**:
+
+```
+HTTP 302 Found
+Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+Location: /console/
+```
+
+**失败 — token 无效**:
+
+```
+HTTP 302 Found
+Location: /login?error=invalid_token
+```
+
+**失败 — 无权限**:
+
+```
+HTTP 302 Found
+Location: /login?error=forbidden
+```
+
+### 关键说明
+
+- **Token 一次性使用**: 验证后即失效，不可重复使用
+- **端点闭源**: 路由注册和 handler 实现均未在开源代码中找到
+- **仅通过前端 API 定义可知其存在**
+- **创建的是目标用户的 Session**: 管理员以目标用户身份操作，拥有目标用户的所有权限
 
 ---
 
-## 认证中间件
+## 8. 认证中间件
+
+源码位置: `backend/middleware/auth.go`
 
 ### 中间件类型
 
 ```go
-// backend/middleware/auth.go
+// 强制认证 — 未登录返回 401
+func (m *AuthMiddleware) Auth() web.HandlerFunc
 
-// Auth() — 强制认证，未登录返回 401
-// 用于需要登录才能访问的端点
+// 可选认证 — 未登录不报错，但 context 中无用户信息
+func (m *AuthMiddleware) Check() web.HandlerFunc
 
-// Check() — 可选认证，未登录不报错
-// 用于公开但登录后有额外信息的端点
+// 强制团队认证 — 需要 monkeycode_ai_team_session
+func (m *AuthMiddleware) TeamAuth() web.HandlerFunc
 
-// TeamAuth() — 强制团队认证，需要 monkeycode_ai_team_session
-// 用于团队管理相关端点
-
-// TeamAuthCheck() — 可选团队认证
-// 用于团队相关但非强制的端点
+// 可选团队认证 — 未登录不报错
+func (m *AuthMiddleware) TeamAuthCheck() web.HandlerFunc
 ```
 
 ### 认证检查流程
@@ -418,10 +1162,18 @@ GET /api/v1/auth/impersonate?token=xxx
   ↓
 读取 Cookie (sl-session 或 monkeycode_ai_team_session)
   ↓
-通过 lookup key 反查 user_uuid
+Cookie 不存在 →
+  Auth()    → 返回 401 { "code": 40100, "msg": "not logged in" }
+  Check()   → 继续，context 中无用户信息
+  ↓
+Cookie 存在 → 通过 lookup key 反查 user_uuid
   lookup:{cookie_name}:{cookie_value} → user_uuid
   ↓
-从 Redis Hash 读取 session data
+Lookup 失败 →
+  Auth()    → 返回 401 { "code": 40100, "msg": "not logged in" }
+  Check()   → 继续，context 中无用户信息
+  ↓
+Lookup 成功 → 从 Redis Hash 读取 session data
   {cookie_name}:{user_uuid} → {cookie_value: json_data}
   ↓
 反序列化 JSON → 注入到请求 context
@@ -429,74 +1181,168 @@ GET /api/v1/auth/impersonate?token=xxx
 继续处理请求
 ```
 
----
+### 未认证响应格式
 
-## 密码管理相关接口
-
-### 修改密码
-
-```
-PUT /api/v1/users/passwords/change
-Headers: Cookie: sl-session=xxx
-Body: {
-  "current_password": "optional_current_md5",  // 可选，取决于是否有旧密码
-  "new_password": "new_md5_hash"               // 8-32 字符
+```json
+{
+  "code": 40100,
+  "msg": "not logged in",
+  "data": null
 }
 ```
 
-### 重置密码请求
+---
+
+## 9. 密码管理接口
+
+### 9.1 修改密码
+
+```
+PUT /api/v1/users/passwords/change
+Cookie: sl-session={uuid}
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
+  "current_password": "current_md5_hash",
+  "new_password": "new_md5_hash"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `current_password` | string | 条件必填 | 当前密码的 MD5（有旧密码时必填） |
+| `new_password` | string | 是 | 新密码的 MD5，8-32 字符 |
+
+**Domain 类型**:
+
+```go
+type ChangePasswordReq struct {
+    CurrentPassword string `json:"current_password"`  // 可选
+    NewPassword     string `json:"new_password"`      // 8-32 chars
+}
+```
+
+### 9.2 请求重置密码
 
 ```
 PUT /api/v1/users/passwords/reset-request
-Body: {
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
   "emails": ["user@example.com"],
   "captcha_token": "xxx"
 }
 ```
 
-### 获取重置密码账号信息
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `emails` | string[] | 是 | 需要重置密码的邮箱列表 |
+| `captcha_token` | string | 是 | 验证码 token |
+
+**Domain 类型**:
+
+```go
+type ResetUserPasswordEmailReq struct {
+    Emails       []string `json:"emails"`
+    CaptchaToken string   `json:"captcha_token"`
+}
+```
+
+### 9.3 获取重置密码账号信息
 
 ```
 GET /api/v1/users/passwords/accounts/{token}
 ```
 
-### 重置密码
+**路径参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `token` | string | 重置密码邮件中的 token |
+
+**响应体** (HTTP 200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "email": "user@example.com"
+  }
+}
+```
+
+### 9.4 重置密码
 
 ```
 PUT /api/v1/users/passwords/reset
-Body: {
-  "new_password": "new_md5_hash",  // 8-32 字符
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
+  "new_password": "new_md5_hash",
   "token": "reset_token_from_email"
 }
 ```
 
-### 团队管理员修改密码
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `new_password` | string | 是 | 新密码的 MD5，8-32 字符 |
+| `token` | string | 是 | 重置密码邮件中的 token |
+
+**Domain 类型**:
+
+```go
+type ResetUserPasswordReq struct {
+    NewPassword string `json:"new_password"`  // 8-32 chars
+    Token       string `json:"token"`
+}
+```
+
+### 9.5 团队管理员修改密码
 
 ```
 PUT /api/v1/teams/users/passwords/change
-Headers: Cookie: monkeycode_ai_team_session=xxx
-Body: {
-  "current_password": "current_md5",
+Cookie: monkeycode_ai_team_session={uuid}
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
+  "current_password": "current_md5_hash",
   "new_password": "new_md5_hash"
 }
 ```
 
----
-
-## 邮箱绑定相关接口
-
-### 发送绑定验证邮件
+### 9.6 邮箱绑定
 
 ```
 PUT /api/v1/users/email/bind-request
-Headers: Cookie: sl-session=xxx
-Body: {
+Cookie: sl-session={uuid}
+Content-Type: application/json
+```
+
+**请求体**:
+
+```json
+{
   "email": "new@example.com",
   "captcha_token": "xxx"
 }
 ```
-
-### 验证绑定邮箱
 
 ```
 GET /api/v1/users/email/verify?token=xxx
@@ -504,54 +1350,34 @@ GET /api/v1/users/email/verify?token=xxx
 
 ---
 
-## 登出接口
+## 10. 闭源组件清单
 
-### 普通用户登出
+以下认证相关端点的处理逻辑**不在开源后端代码中**，属于闭源组件:
 
-```
-POST /api/v1/users/logout
-Headers: Cookie: sl-session=xxx
-← 清除该 session entry
-← Set-Cookie: sl-session=; Path=/; Max-Age=-1; HttpOnly
-```
+| 端点 | 功能 | 闭源原因 |
+|------|------|---------|
+| `GET /api/v1/users/login` | 百智云 OAuth 跳转 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/users/baizhi/callback` | 百智云 OAuth 回调 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/gitea/authorize_url` | Gitea OAuth URL | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/gitee/authorize_url` | Gitee OAuth URL | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/gitlab/authorize_url` | GitLab OAuth URL | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/oauth/gitea/callback` | Gitea OAuth 回调 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/oauth/gitee/callback` | Gitee OAuth 回调 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/oauth/gitlab/callback` | GitLab OAuth 回调 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/auth/impersonate` | 管理员模拟登录 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/oauth/bind` | OAuth 绑定查询 | 通过 GoYoko/web 框架注册 |
+| `GET /api/v1/oauth/bind-users` | 可绑定用户查询 | 通过 GoYoko/web 框架注册 |
+| `DELETE /api/v1/oauth/unbind` | OAuth 解绑 | 通过 GoYoko/web 框架注册 |
 
-### 团队管理员登出
-
-```
-POST /api/v1/teams/users/logout
-Headers: Cookie: monkeycode_ai_team_session=xxx
-← 清除该 team session entry
-← Set-Cookie: monkeycode_ai_team_session=; Path=/; Max-Age=-1; HttpOnly
-```
-
----
-
-## 登录状态检查
-
-### 普通用户状态
-
-```
-GET /api/v1/users/status
-Headers: Cookie: sl-session=xxx (可选)
-← 200 OK
-  有 Cookie 且有效: isLoggedIn = true
-  无 Cookie 或无效: isLoggedIn = false
-```
-
-### 团队管理员状态
-
-```
-GET /api/v1/teams/users/status
-Headers: Cookie: monkeycode_ai_team_session=xxx (可选)
-```
+这些端点通过 GoYoko/web 框架或独立中间件注册，不在开源的 `biz/` 目录中。
 
 ---
 
-## 反向代理认证策略
+## 11. 反向代理认证策略
 
-### 推荐方案: Cookie 复用
+### 方案一: Cookie 复用（推荐）
 
-最简单可靠的方式，绕过验证码：
+最简单可靠的方式，完全绕过验证码:
 
 ```
 1. 在浏览器中正常登录 MonkeyCode
@@ -560,16 +1386,41 @@ Headers: Cookie: monkeycode_ai_team_session=xxx (可选)
 4. 所有 API 请求携带 Cookie: sl-session={value}
 ```
 
-### 备选方案: 自动化登录
+**优点**: 无需处理验证码，实现简单
+**缺点**: Session 有过期时间，需要定期手动更新
 
-需要解决验证码问题：
+### 方案二: 自动化密码登录
+
+需要解决验证码问题:
 
 ```
-1. 实现验证码挑战获取 (POST /api/v1/public/captcha/challenge)
+1. 实现验证码挑战获取
+   POST /api/v1/public/captcha/challenge
+   ← { id, image, targets }
+
 2. [障碍] 解决 50x32 网格图片验证码
-3. 兑换 token (POST /api/v1/public/captcha/redeem)
-4. 调用登录 API (POST /api/v1/users/password-login)
+   需要图像识别或手动输入
+
+3. 兑换 token
+   POST /api/v1/public/captcha/redeem
+   Body: { id, answers: [{x,y},...] }
+   ← { success: true, token: "xxx" }
+
+4. 调用登录 API
+   POST /api/v1/users/password-login
+   Body: { email, password: md5(明文密码), captcha_token }
+   ← Set-Cookie: sl-session=xxx
+
 5. 提取 Set-Cookie 中的 sl-session 值
+```
+
+### 方案三: 百智云 OAuth 自动化
+
+```
+1. GET /api/v1/users/login → 获取百智云 OAuth URL
+2. [障碍] 需要百智云账号的认证凭据
+3. 完成百智云 OAuth 流程
+4. 从回调中提取 sl-session cookie
 ```
 
 ### Session 保活
@@ -591,7 +1442,7 @@ Content-Type: application/json
 
 ---
 
-## 权限层级
+## 权限层级总览
 
 | 角色 | Session Cookie | 可访问端点 |
 |------|---------------|-----------|
@@ -599,26 +1450,3 @@ Content-Type: application/json
 | 普通用户 | `sl-session` | 用户级端点（模型、任务、对话、代码仓库） |
 | 团队管理员 | `monkeycode_ai_team_session` | 团队管理端点（团队模型、成员、分组） |
 | 系统管理员 | `sl-session` (admin flag) | 所有端点 + impersonate |
-
----
-
-## 闭源组件清单
-
-以下认证相关端点的处理逻辑**不在开源后端代码中**，属于闭源组件：
-
-| 端点 | 说明 |
-|------|------|
-| `GET /api/v1/users/login` | 百智云 OAuth 跳转 |
-| `GET /api/v1/users/baizhi/callback` | 百智云 OAuth 回调 |
-| `GET /api/v1/gitea/authorize_url` | Gitea OAuth URL |
-| `GET /api/v1/gitee/authorize_url` | Gitee OAuth URL |
-| `GET /api/v1/gitlab/authorize_url` | GitLab OAuth URL |
-| `GET /api/v1/oauth/gitea/callback` | Gitea OAuth 回调 |
-| `GET /api/v1/oauth/gitee/callback` | Gitee OAuth 回调 |
-| `GET /api/v1/oauth/gitlab/callback` | GitLab OAuth 回调 |
-| `GET /api/v1/auth/impersonate` | 管理员模拟登录 |
-| `GET /api/v1/oauth/bind` | OAuth 绑定查询 |
-| `GET /api/v1/oauth/bind-users` | 可绑定用户查询 |
-| `DELETE /api/v1/oauth/unbind` | OAuth 解绑 |
-
-这些端点通过 GoYoko/web 框架或独立中间件注册，不在开源的 `biz/` 目录中。
