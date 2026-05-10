@@ -1,0 +1,24 @@
+{
+  "name": "monkeycode-reverse-proxy",
+  "version": "0.1.0",
+  "description": "Reverse proxy exposing MonkeyCode's built-in LLMs as OpenAI-compatible API",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "npx tsx src/server.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0"
+  }
+}
