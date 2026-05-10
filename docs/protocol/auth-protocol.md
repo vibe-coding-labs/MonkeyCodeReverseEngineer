@@ -16,7 +16,7 @@ type SessionData struct {
 }
 ```
 
-- **Cookie 名**: `monkeycode_ai_session`
+- **Cookie 名**: `sl-session`
 - **Redis Key**: `sess:{session_id}`
 - **Session TTL**: 可配置（默认 24h）
 
@@ -51,7 +51,7 @@ type SessionData struct {
          "password": "md5_hash_of_password"  // MD5 哈希
        }
        ← 200 OK
-         Set-Cookie: monkeycode_ai_session=xxx; Path=/; HttpOnly
+         Set-Cookie: sl-session=xxx; Path=/; HttpOnly
          Body: { "user": {...}, "team": {...} }
 ```
 
@@ -62,7 +62,7 @@ type SessionData struct {
 ```
 管理员 → GET /api/v1/auth/impersonate?user_id=xxx
        ← 创建目标用户的 Session
-       ← Set-Cookie: monkeycode_ai_session=xxx
+       ← Set-Cookie: sl-session=xxx
        ← 302 重定向到控制台
 ```
 
@@ -71,7 +71,7 @@ type SessionData struct {
 ```
 用户 → POST /api/v1/users/logout
      ← 清除 Session
-     ← Set-Cookie: monkeycode_ai_session=; Max-Age=0
+     ← Set-Cookie: sl-session=; Max-Age=0
 ```
 
 ## 认证中间件
@@ -80,7 +80,7 @@ type SessionData struct {
 // 后端认证中间件伪代码
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
     return func(c echo.Context) error {
-        cookie, err := c.Cookie("monkeycode_ai_session")
+        cookie, err := c.Cookie("sl-session")
         if err != nil {
             return c.JSON(401, {"error": "unauthorized"})
         }
@@ -146,7 +146,7 @@ func PublicModelKey(modelID string) string {
 
 1. **获取 Session Cookie**: 通过 Team 登录或 OAuth 登录
 2. **保持 Session 活跃**: 定期调用 API 刷新 Session
-3. **传递 Cookie**: 所有 API 请求携带 `Cookie: monkeycode_ai_session=xxx`
+3. **传递 Cookie**: 所有 API 请求携带 `Cookie: sl-session=xxx`
 
 ```typescript
 // 反向代理中的认证实现
@@ -160,7 +160,7 @@ async function authenticate(username: string, password: string): Promise<string>
 
   // 从 Set-Cookie header 提取 session
   const setCookie = response.headers.get('set-cookie')
-  const match = setCookie?.match(/monkeycode_ai_session=([^;]+)/)
+  const match = setCookie?.match(/sl-session=([^;]+)/)
   return match?.[1] || ''
 }
 ```

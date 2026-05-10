@@ -3,7 +3,7 @@
 import crypto from "crypto"
 
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
-const SESSION_COOKIE_NAME = "monkeycode_ai_session"
+const SESSION_COOKIE_NAME = "sl-session"
 
 export class AuthManager {
   private sessionCookie: string = ""
