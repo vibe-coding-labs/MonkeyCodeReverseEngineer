@@ -1,7 +1,7 @@
 # MonkeyCode 账号池认证协议完整报告
 
 > 基于 chaitin/MonkeyCode 开源后端源码逆向分析
-> 分析日期: 2026-05-11
+> 分析日期: 2026-05-11 | 更新日期: 2026-05-12（未决问题已全部确认）
 
 ---
 
@@ -26,11 +26,11 @@
 │  ┌──────────────────────┐          ┌──────────────────────┐ │
 │  │ 1. 密码登录           │          │ UserRole:            │ │
 │  │    POST /password-login│         │  individual          │ │
-│  │    → sl-session       │          │  enterprise          │ │
+│  │    → monkeycode_ai_session       │          │  enterprise          │ │
 │  │                       │          │  subaccount          │ │
 │  │ 2. 百智云 OAuth       │          │  admin               │ │
 │  │    GET /login → 回调   │          │  gittask             │ │
-│  │    → sl-session       │          │                      │ │
+│  │    → monkeycode_ai_session       │          │                      │ │
 │  │                       │          │ OwnerType:           │ │
 │  │ 3. 团队管理员登录      │          │  private             │ │
 │  │    POST /teams/login   │         │  team                │ │
@@ -38,11 +38,11 @@
 │  │                       │          │                      │ │
 │  │ 4. Git OAuth 绑定     │          │ AccessLevel:         │ │
 │  │    GET /git/auth      │          │  basic               │ │
-│  │    → sl-session       │          │  pro                 │ │
+│  │    → monkeycode_ai_session       │          │  pro                 │ │
 │  │                       │          └──────────────────────┘ │
 │  │ 5. Admin Impersonate  │                                   │
 │  │    GET /impersonate   │                                   │
-│  │    → sl-session       │                                   │
+│  │    → monkeycode_ai_session       │                                   │
 │  └──────────────────────┘                                   │
 │                                                             │
 │  Session 存储: Redis Hash                                    │
@@ -89,9 +89,9 @@
 }
 ```
 
-**Set-Cookie**: `sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax`
+**Set-Cookie**: `monkeycode_ai_session={uuid}; Path=/; HttpOnly; SameSite=Lax`
 
-**密码格式**: 后端注释标注 MD5，但前端代码传明文。**需要实测确认**（详见 §6.1）。
+**密码格式**: 前端传明文，后端用 bcrypt 验证。注释中标注 MD5 是**错误注释**，实际不经过 MD5（详见 §6.1）。
 
 **验证码前置**:
 1. `POST /api/v1/public/captcha/challenge` → 获取挑战 ID + 图片
@@ -120,7 +120,7 @@
 **流程**:
 1. `GET /api/v1/users/login` → 302 重定向到百智云
 2. 用户在百智云完成认证
-3. 百智云回调 MonkeyCode → 创建/关联用户 → 设置 `sl-session`
+3. 百智云回调 MonkeyCode → 创建/关联用户 → 设置 `monkeycode_ai_session`
 
 **闭源部分**: 回调处理逻辑在闭源组件中，无法从开源代码获取。
 
@@ -138,7 +138,7 @@
 
 **前置条件**: 当前用户必须是 `admin` 角色
 
-**流程**: 生成临时 token → 重定向到前端 → 前端用 token 换取 `sl-session`
+**流程**: 生成临时 token → 重定向到前端 → 前端用 token 换取 `monkeycode_ai_session`
 
 **闭源**: token 生成逻辑完全闭源。
 
@@ -150,17 +150,17 @@
 
 | 角色 | 常量 | Session Cookie | 权限范围 |
 |------|------|---------------|---------|
-| 个人用户 | `individual` | `sl-session` | 私有模型 + 任务 + VM |
-| 企业用户 | `enterprise` | `sl-session` | 私有 + 团队模型/任务 |
-| 企业子账户 | `subaccount` | `sl-session` | 团队分配的资源 |
-| 系统管理员 | `admin` | `sl-session` | 所有用户资源 + 公开模型管理 |
+| 个人用户 | `individual` | `monkeycode_ai_session` | 私有模型 + 任务 + VM |
+| 企业用户 | `enterprise` | `monkeycode_ai_session` | 私有 + 团队模型/任务 |
+| 企业子账户 | `subaccount` | `monkeycode_ai_session` | 团队分配的资源 |
+| 系统管理员 | `admin` | `monkeycode_ai_session` | 所有用户资源 + 公开模型管理 |
 | Git 任务 | `gittask` | 内部 | 自动化 git 任务 |
 
 ### 3.2 中间件 → API 映射
 
 | 中间件 | 认证要求 | 适用 API |
 |--------|---------|---------|
-| `Auth()` | 必须有 `sl-session` | 大部分用户 API |
+| `Auth()` | 必须有 `monkeycode_ai_session` | 大部分用户 API |
 | `Check()` | 可选认证 | 公开流、公开端点 |
 | `TeamAuth()` | 必须有 `monkeycode_ai_team_session` | 团队管理 API |
 | `TeamAdminAuth()` | TeamAuth + 管理员权限 | 团队成员管理 |
@@ -186,11 +186,11 @@
 
 ```text
 Redis:
-  Hash Key: sl-session:{user_uuid}
+  Hash Key: monkeycode_ai_session:{user_uuid}
     Field: {cookie_uuid_1} → {"user_id":"...","role":"individual",...}
     Field: {cookie_uuid_2} → {"user_id":"...","role":"individual",...}
 
-  Lookup Key: lookup:sl-session:{cookie_uuid} → {user_uuid}
+  Lookup Key: lookup:monkeycode_ai_session:{cookie_uuid} → {user_uuid}
 ```
 
 ### 4.2 关键特性
@@ -219,12 +219,14 @@ status 返回 40100 → EXPIRED
 账号被封禁 → INVALID (永久移除)
 ```
 
-### 4.4 保活协议
+### 4.4 有效性检测协议
+
+> **重要**: 调用 status 端点**不会刷新** Redis TTL。Session 有效期从 Save 时固定（默认 30 天），无法通过任何 API 调用续期。
 
 ```bash
-# 每 5 分钟执行
+# 定期检测 session 有效性（建议每 1 小时）
 GET /api/v1/users/status
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 
 # 成功响应
 {"code": 0, "data": {"status": "active"}}
@@ -232,6 +234,8 @@ Cookie: sl-session={uuid}
 # 失败响应
 {"code": 40100, "msg": "Unauthorized"}
 ```
+
+**Session 轮换策略**: 在 session 过期前 1-2 天主动重新登录获取新 session。
 
 ---
 
@@ -275,50 +279,44 @@ Cookie: sl-session={uuid}
 
 ---
 
-## 6. 未决问题与实测验证清单
+## 6. 未决问题验证结果（全部已确认）
 
-### 6.1 密码传输格式（P0）
+> 详细证据链见 `docs/protocol/auth-unresolved-verification.md`
 
-**问题**: 前端传 MD5 还是明文？
+### 6.1 密码传输格式（P0）— 已确认：明文
 
-**验证方法**:
-```bash
-# 测试 MD5 格式
-curl -X POST https://monkeycode-ai.com/api/v1/users/password-login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"e10adc3949ba59abbe56e057f20f883e","captcha_token":"xxx"}'
+**结论**: 前端传明文，后端用 bcrypt 验证。注释中"MD5加密后的值"是错误注释，实际不经过 MD5。
 
-# 测试明文格式
-curl -X POST https://monkeycode-ai.com/api/v1/users/password-login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"123456","captcha_token":"xxx"}'
-```
+**证据**: 前端 `login.tsx:85-88` 直接传 `userPassword.trim()`；后端 `pkg/crypto/bcrypt.go:22-24` 使用 `bcrypt.CompareHashAndPassword()`；前端无任何 MD5 依赖。
 
-**账号池存储建议**: 存储明文密码，登录时根据实测结果决定是否 MD5。
+**账号池存储**: 存储明文密码，登录时直接传明文。
 
-### 6.2 团队管理员 Cookie 名称（P2）
+### 6.2 团队管理员 Cookie 名称（P2）— 已确认：硬编码
 
-**问题**: 线上环境 `monkeycode_ai_team_session` 是否被覆盖？
+**结论**: Cookie 名称硬编码在 `consts/auth.go`，线上环境不会改变。
 
-**验证方法**: 浏览器登录团队管理员后检查 DevTools → Application → Cookies。
+- 用户登录 Cookie: `monkeycode_ai_session`
+- 团队登录 Cookie: `monkeycode_ai_team_session`
 
-### 6.3 Session TTL（P1）
+**注意**: 之前文档中写的 `sl-session` 是错误的，正确名称是 `monkeycode_ai_session`。
 
-**问题**: Session 过期时间是多少？
+### 6.3 Session TTL（P1）— 已确认：默认 30 天
 
-**验证方法**: 登录后观察 Redis TTL 或长时间不活动后测试。
+**结论**: Session 默认有效期 30 天，可通过环境变量 `MCAI_SESSION_EXPIRE_DAY` 配置。
 
-### 6.4 并发检测（P1）
+**源码** (`config/config.go:216`): `v.SetDefault("session.expire_day", 30)`
 
-**问题**: 生产环境是否有异常并发检测？
+### 6.4 并发检测（P1）— 已确认：开源代码无检测
 
-**验证方法**: 同一 session 高频调用 API，观察是否被限制。
+**结论**: 开源源码中无任何 API 级别的并发检测或限流逻辑。TargetActive 中间件仅记录活跃时间和 IP，无限流。
 
-### 6.5 Status 端点是否刷新 TTL（P2）
+**建议**: 保守起见，每账号限制 2 session，每 session QPS < 5。
 
-**问题**: 调用 `/api/v1/users/status` 是否刷新 Redis TTL？
+### 6.5 Status 端点是否刷新 TTL（P2）— 已确认：不刷新
 
-**验证方法**: 登录后记录 TTL，调用 status 后再次检查 TTL 是否变化。
+**结论**: 调用 `/api/v1/users/status` **不刷新** Redis TTL。Session 有效期从 Save 时固定，30 天后必定过期，无法通过任何 API 调用续期。
+
+**证据**: Status handler 仅返回用户信息；`session.Get()` 使用 `rdb.Get()` + `rdb.HGet()`，这两个 Redis 命令不刷新 TTL。
 
 ---
 
@@ -327,7 +325,7 @@ curl -X POST https://monkeycode-ai.com/api/v1/users/password-login \
 ### 7.1 请求头注入
 
 ```http
-Cookie: sl-session={session_uuid}
+Cookie: monkeycode_ai_session={session_uuid}
 Content-Type: application/json
 ```
 
@@ -351,10 +349,11 @@ Content-Type: application/json
 
 ### 7.4 保活策略
 
-- 每 5 分钟检查 session 有效性
+- 定期（每 1 小时）检查 session 有效性
 - 失效时自动切换到备用 session
 - 备用也失效时触发重新登录
 - 登录失败标记账号异常
+- Session 无法续期，过期前 1-2 天主动重新登录
 
 ---
 
@@ -368,22 +367,22 @@ SESSION_ID="550e8400-e29b-41d4-a716-446655440000"
 
 # 2. 验证 Session 有效性
 curl -s https://monkeycode-ai.com/api/v1/users/status \
-  -H "Cookie: sl-session=$SESSION_ID" | jq .
+  -H "Cookie: monkeycode_ai_session=$SESSION_ID" | jq .
 # 期望: {"code": 0, "data": {"status": "active"}}
 
 # 3. 获取用户信息
 curl -s https://monkeycode-ai.com/api/v1/users/me \
-  -H "Cookie: sl-session=$SESSION_ID" | jq .
+  -H "Cookie: monkeycode_ai_session=$SESSION_ID" | jq .
 # 期望: {"code": 0, "data": {"id": "...", "role": "individual", ...}}
 
 # 4. 获取可用模型
 curl -s https://monkeycode-ai.com/api/v1/users/models \
-  -H "Cookie: sl-session=$SESSION_ID" | jq '.data.models[] | {id, model, provider, owner: .owner.type}'
+  -H "Cookie: monkeycode_ai_session=$SESSION_ID" | jq '.data.models[] | {id, model, provider, owner: .owner.type}'
 # 期望: 模型列表
 
 # 5. 创建任务（LLM 调用）
 curl -s -X POST https://monkeycode-ai.com/api/v1/users/tasks \
-  -H "Cookie: sl-session=$SESSION_ID" \
+  -H "Cookie: monkeycode_ai_session=$SESSION_ID" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "Hello, write a hello world in Python",
@@ -402,7 +401,7 @@ curl -s -X POST https://monkeycode-ai.com/api/v1/users/tasks \
 ```bash
 # 1. 请求失败，检测到 40100
 RESPONSE=$(curl -s https://monkeycode-ai.com/api/v1/users/models \
-  -H "Cookie: sl-session=$EXPIRED_SESSION")
+  -H "Cookie: monkeycode_ai_session=$EXPIRED_SESSION")
 echo $RESPONSE | jq '.code'
 # 输出: 40100
 
@@ -411,7 +410,7 @@ SESSION_ID=$BACKUP_SESSION
 
 # 3. 重试请求
 curl -s https://monkeycode-ai.com/api/v1/users/models \
-  -H "Cookie: sl-session=$SESSION_ID" | jq '.code'
+  -H "Cookie: monkeycode_ai_session=$SESSION_ID" | jq '.code'
 # 期望: 0
 
 # 4. 如果备用也失效，触发重新登录
@@ -430,3 +429,4 @@ curl -s https://monkeycode-ai.com/api/v1/users/models \
 | 自动化分析 | `docs/protocol/auth-automation-analysis.md` | 密码格式/验证码/并发 |
 | 账号池协议 | `docs/protocol/account-pool-protocol.md` | Session 池化/轮换/保活 |
 | 缺口分析 | `docs/protocol/auth-pool-gap-analysis.md` | 文档覆盖度评估 |
+| 未决问题验证 | `docs/protocol/auth-unresolved-verification.md` | 5 个未决问题的源码级验证结果 |

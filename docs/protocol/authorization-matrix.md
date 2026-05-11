@@ -11,10 +11,10 @@
 
 | 角色 | 常量值 | 说明 | Session Cookie |
 |------|--------|------|---------------|
-| 个人用户 | `individual` | 普通注册用户 | `sl-session` |
-| 企业用户 | `enterprise` | 有团队的企业用户 | `sl-session` |
-| 企业子账户 | `subaccount` | 企业下的子账户 | `sl-session` |
-| 系统管理员 | `admin` | MonkeyCode AI 管理员，配置公共资源 | `sl-session` |
+| 个人用户 | `individual` | 普通注册用户 | `monkeycode_ai_session` |
+| 企业用户 | `enterprise` | 有团队的企业用户 | `monkeycode_ai_session` |
+| 企业子账户 | `subaccount` | 企业下的子账户 | `monkeycode_ai_session` |
+| 系统管理员 | `admin` | MonkeyCode AI 管理员，配置公共资源 | `monkeycode_ai_session` |
 | Git 任务用户 | `gittask` | 全自动 git 任务专用用户 | 内部使用 |
 
 ### 1.2 用户状态 (UserStatus)
@@ -66,7 +66,7 @@
 ```
 请求到达
   ↓
-读取 Cookie (sl-session 或 monkeycode_ai_team_session)
+读取 Cookie (monkeycode_ai_session 或 monkeycode_ai_team_session)
   ↓
 Cookie 不存在 →
   Auth()    → HTTP 401 "Unauthorized"
@@ -109,7 +109,7 @@ TeamAdminAuth 额外检查 → isAdmin() == false → HTTP 403 "Forbidden"
 | GET | `/api/v1/users/passwords/accounts/{token}` | 获取重置账号信息 |
 | PUT | `/api/v1/users/passwords/reset` | 重置密码 |
 
-### 3.2 用户级端点（需要 `sl-session`）
+### 3.2 用户级端点（需要 `monkeycode_ai_session`）
 
 **核心 LLM 相关：**
 
@@ -160,7 +160,7 @@ TeamAdminAuth 额外检查 → isAdmin() == false → HTTP 403 "Forbidden"
 | PUT | `/api/v1/teams/users/{id}` | TeamAuth + TeamAdminAuth | 更新成员 |
 | DELETE | `/api/v1/teams/users/{id}` | TeamAuth + TeamAdminAuth | 删除成员 |
 
-### 3.4 管理员端点（需要 `sl-session` + admin 角色）
+### 3.4 管理员端点（需要 `monkeycode_ai_session` + admin 角色）
 
 | Method | Path | 说明 |
 |--------|------|------|

@@ -44,7 +44,7 @@
 
 | 方式 | 自动化程度 | 说明 |
 |------|-----------|------|
-| 浏览器 Cookie 导入 | 手动 | 从 DevTools 复制 `sl-session` 值 |
+| 浏览器 Cookie 导入 | 手动 | 从 DevTools 复制 `monkeycode_ai_session` 值 |
 | 密码登录 API | 半自动 | 需要验证码 token |
 | 团队管理员登录 | 半自动 | 需要验证码 token |
 | 百智云 OAuth | 手动 | 需要浏览器交互 |
@@ -56,7 +56,7 @@
 
 ```typescript
 interface PoolSession {
-  id: string              // cookie UUID (sl-session 的值)
+  id: string              // cookie UUID (monkeycode_ai_session 的值)
   userId: string          // 用户 UUID
   email: string           // 用户邮箱
   role: UserRole          // 用户角色
@@ -84,7 +84,7 @@ type SessionStatus = 'CREATED' | 'ACTIVE' | 'EXPIRED' | 'INVALID'
 ```http
 GET /api/v1/users/models HTTP/1.1
 Host: monkeycode-ai.com
-Cookie: sl-session={session_uuid}
+Cookie: monkeycode_ai_session={session_uuid}
 Content-Type: application/json
 ```
 
@@ -95,14 +95,14 @@ GET /api/v1/users/tasks/stream?id={taskId}&mode=new HTTP/1.1
 Host: monkeycode-ai.com
 Upgrade: websocket
 Connection: Upgrade
-Cookie: sl-session={session_uuid}
+Cookie: monkeycode_ai_session={session_uuid}
 ```
 
 ### 3.3 认证注入流程
 
 ```text
 1. 从 Session 池选择一个 ACTIVE session
-2. 注入 Cookie: sl-session={session.id}
+2. 注入 Cookie: monkeycode_ai_session={session.id}
 3. 发送请求
 4. 检查响应：
    - 成功 (code: 0) → 更新 lastUsedAt
@@ -230,17 +230,20 @@ def select_session(pool, request_type="http"):
 
 ## 6. 保活与监控
 
-### 6.1 保活策略
+### 6.1 有效性检测策略
+
+> **重要**: 调用 status 端点**不会刷新** Redis TTL。Session 有效期从 Save 时固定（默认 30 天），无法续期。
 
 ```text
-保活检查间隔: 5 分钟
-保活方法: GET /api/v1/users/status
+检测间隔: 1 小时（非保活，仅检测有效性）
+检测方法: GET /api/v1/users/status
 
-检查流程:
-  1. 选择 lastCheckedAt > 5min 的 session
+检测流程:
+  1. 选择 lastCheckedAt > 1h 的 session
   2. 调用 status 端点
   3. 成功 → 更新 lastCheckedAt
   4. 失败 → 标记 EXPIRED，尝试刷新
+  5. Session 过期前 1-2 天主动重新登录获取新 session
 ```
 
 ### 6.2 监控指标

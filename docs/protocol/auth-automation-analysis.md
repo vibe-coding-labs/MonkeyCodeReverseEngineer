@@ -147,7 +147,7 @@ def verify_password_format(email, plain_password, captcha_token):
 **对于账号池场景，推荐 Cookie 复用方案：**
 
 1. 在浏览器中正常登录 MonkeyCode
-2. 从 DevTools → Application → Cookies 复制 `sl-session` 值
+2. 从 DevTools → Application → Cookies 复制 `monkeycode_ai_session` 值
 3. 配置到账号池中
 4. 定期检查 session 有效性，过期后重新登录
 
@@ -222,7 +222,7 @@ Lookup: lookup:{cookie_name}:{cookie_uuid} → user_uuid
 
 ```bash
 GET /api/v1/users/status
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 ```
 
 **响应判断：**
