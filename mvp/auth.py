@@ -1,16 +1,16 @@
 """MonkeyCode 认证协议验证模块
 
 支持的登录方式:
-1. 普通用户密码登录 (POST /api/v1/users/password-login)
-2. 团队管理员密码登录 (POST /api/v1/teams/users/login)
-3. Session Cookie 直接设置（从浏览器提取）
+1. 百智云 OAuth 登录 (GET /api/v1/users/login → 百智云 → 回调)
+2. 普通用户密码登录 (POST /api/v1/users/password-login)
+3. 团队管理员密码登录 (POST /api/v1/teams/users/login)
+4. Session Cookie 直接设置（从浏览器提取）
 
 验证码说明:
-- 所有密码登录需要 captcha_token
-- 验证码系统为 go-cap (50x32 网格，3 目标)
-- 自动化场景建议直接使用浏览器提取的 Session Cookie
+- 密码登录需要 MonkeyCode captcha_token (go-cap)
+- 百智云登录需要 SCaptcha token (长亭科技) + 短信验证码
+- 自动化场景推荐使用 oauth_login.py 或 oauth_http.py
 """
-import hashlib
 import re
 import requests
 from config import BASE_URL, SESSION_COOKIE_NAME, USERNAME, PASSWORD, SESSION_COOKIE
@@ -34,18 +34,15 @@ class MonkeyCodeAuth:
         if not email or not password:
             raise ValueError("需要提供 email 和 password")
 
-        password_md5 = hashlib.md5(password.encode()).hexdigest()
-
         url = f"{BASE_URL}/api/v1/users/password-login"
         payload = {
             "email": email.strip(),
-            "password": password_md5,
+            "password": password.strip(),
         }
         if captcha_token:
             payload["captcha_token"] = captcha_token
 
         print(f"[Auth] 普通用户登录: {email}")
-        print(f"[Auth] 密码 MD5: {password_md5}")
 
         resp = self.session.post(url, json=payload, allow_redirects=False)
 
@@ -82,18 +79,15 @@ class MonkeyCodeAuth:
         if not email or not password:
             raise ValueError("需要提供 email 和 password")
 
-        password_md5 = hashlib.md5(password.encode()).hexdigest()
-
         url = f"{BASE_URL}/api/v1/teams/users/login"
         payload = {
             "email": email.strip(),
-            "password": password_md5,
+            "password": password.strip(),
         }
         if captcha_token:
             payload["captcha_token"] = captcha_token
 
         print(f"[Auth] 团队管理员登录: {email}")
-        print(f"[Auth] 密码 MD5: {password_md5}")
 
         resp = self.session.post(url, json=payload, allow_redirects=False)
 
@@ -118,6 +112,41 @@ class MonkeyCodeAuth:
             pass
 
         return {"success": True, "status": resp.status_code, "cookie": self.session_cookie}
+
+    def oauth_login(self):
+        """百智云 OAuth 登录 — 获取重定向 URL
+
+        实际登录流程需要浏览器交互（百智云手机号+验证码+SCaptcha），
+        此方法仅获取 OAuth 重定向 URL，完整流程请使用 oauth_login.py 或 oauth_http.py。
+
+        Returns:
+            dict: {"redirect_url": "https://baizhi.cloud/oauth/authorize?...", "state": "..."}
+        """
+        url = f"{BASE_URL}/api/v1/users/login"
+        print(f"[Auth] 百智云 OAuth 登录 — 获取重定向 URL")
+
+        resp = requests.get(url, allow_redirects=False, timeout=15)
+        if resp.status_code != 302:
+            print(f"[Auth] OAuth 重定向失败: status={resp.status_code}")
+            return None
+
+        location = resp.headers.get("Location", "")
+        print(f"[Auth] 重定向到: {location[:80]}...")
+
+        # 解析 OAuth 参数
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(location)
+        params = parse_qs(parsed.query)
+
+        result = {
+            "redirect_url": location,
+            "state": params.get("state", [""])[0],
+            "client_id": params.get("client_id", [""])[0],
+            "redirect_uri": params.get("redirect_uri", [""])[0],
+            "scope": params.get("scope", [""])[0],
+        }
+        print(f"[Auth] OAuth 参数: client_id={result['client_id']}, state={result['state'][:12]}...")
+        return result
 
     def set_session_cookie(self, cookie: str, cookie_name: str = None):
         """手动设置 Session Cookie（从浏览器提取）"""
