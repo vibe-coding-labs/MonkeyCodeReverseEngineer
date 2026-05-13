@@ -1,6 +1,7 @@
 # MonkeyCode 认证自动化与密码格式分析
 
 > 分析日期: 2026-05-11
+> **结论已确认 (2026-05-12)**: 密码传输格式为**明文**，前端直接传 `userPassword.trim()`，后端用 `bcrypt.CompareHashAndPassword()` 验证。注释中的 MD5 标注是错误注释。详见 `docs/protocol/auth-unresolved-verification.md` §1。
 
 ---
 

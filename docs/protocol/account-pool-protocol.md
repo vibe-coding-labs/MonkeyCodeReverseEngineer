@@ -316,8 +316,8 @@ def select_session(pool, request_type="http"):
   "accounts": [
     {
       "email": "user1@example.com",
-      "password": "plain_or_md5_password",
-      "password_format": "auto",
+      "password": "plain_password",
+      "password_format": "plaintext",
       "role": "individual",
       "max_sessions": 2,
       "tags": ["pool-1", "gpt-4o"]

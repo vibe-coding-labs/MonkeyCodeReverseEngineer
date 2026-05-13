@@ -1,7 +1,7 @@
 // MonkeyCode 认证模块 — Cookie-based Session 管理
 //
 // 支持的登录方式:
-// 1. 普通用户密码登录 (POST /api/v1/users/password-login) → Cookie: sl-session
+// 1. 普通用户密码登录 (POST /api/v1/users/password-login) → Cookie: monkeycode_ai_session
 // 2. 团队管理员密码登录 (POST /api/v1/teams/users/login) → Cookie: monkeycode_ai_team_session
 // 3. 手动设置 Session Cookie（从浏览器提取）
 //
@@ -12,7 +12,7 @@
 import crypto from "crypto"
 
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
-const SESSION_COOKIE_NAME = "sl-session"
+const SESSION_COOKIE_NAME = "monkeycode_ai_session"
 const TEAM_SESSION_COOKIE_NAME = "monkeycode_ai_team_session"
 
 export type LoginMode = "user" | "team"
@@ -74,7 +74,7 @@ export class AuthManager {
 
   /** 普通用户密码登录
    *  API: POST /api/v1/users/password-login
-   *  Cookie: sl-session
+   *  Cookie: monkeycode_ai_session
    */
   async loginUser(): Promise<void> {
     if (!this.email || !this.passwordHash) {

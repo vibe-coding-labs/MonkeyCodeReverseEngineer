@@ -30,10 +30,10 @@ MonkeyCode 使用 **Cookie-based Session** 认证，Session 数据存储在 Redi
 
 | 项目 | 源码常量 | 线上实际值 | 说明 |
 |------|---------|-----------|------|
-| 普通用户 Session Cookie | `monkeycode_ai_session` | `sl-session` | 线上部署时覆盖了源码常量 |
-| 团队管理员 Session Cookie | `monkeycode_ai_team_session` | 未验证 | 源码常量，线上可能也有覆盖 |
+| 普通用户 Session Cookie | `monkeycode_ai_session` | `monkeycode_ai_session` | 硬编码常量，线上不会覆盖 |
+| 团队管理员 Session Cookie | `monkeycode_ai_team_session` | `monkeycode_ai_team_session` | 硬编码常量，线上不会覆盖 |
 
-**重要**: 反向代理实现必须使用 `sl-session` 而非源码中的 `monkeycode_ai_session`。
+> **已验证**: Cookie 名称硬编码在 `backend/consts/auth.go` 中，线上环境不会覆盖。之前文档中记录的 `sl-session` 是错误的，正确名称为 `monkeycode_ai_session`。详见 `docs/protocol/auth-unresolved-verification.md`。
 
 ### 统一响应格式
 
@@ -75,11 +75,11 @@ Lookup Key:  lookup:{cookie_name}:{cookie_uuid}  → user_uuid
 # 用户 UUID = a1b2c3d4-e5f6-7890-abcd-ef1234567890
 # Cookie UUID = f7e6d5c4-b3a2-1098-7654-321fedcba098
 
-Hash Key:    sl-session:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Hash Key:    monkeycode_ai_session:a1b2c3d4-e5f6-7890-abcd-ef1234567890
   Field:     f7e6d5c4-b3a2-1098-7654-321fedcba098
   Value:     {"user_id":"a1b2c3d4-...","role":"user",...}
 
-Lookup Key:  lookup:sl-session:f7e6d5c4-b3a2-1098-7654-321fedcba098
+Lookup Key:  lookup:monkeycode_ai_session:f7e6d5c4-b3a2-1098-7654-321fedcba098
   Value:     a1b2c3d4-e5f6-7890-abcd-ef1234567890
 ```
 
@@ -97,7 +97,7 @@ Lookup Key:  lookup:sl-session:f7e6d5c4-b3a2-1098-7654-321fedcba098
 
 ```go
 &http.Cookie{
-    Name:     cookieName,       // "sl-session" 或 "monkeycode_ai_team_session"
+    Name:     cookieName,       // "monkeycode_ai_session" 或 "monkeycode_ai_team_session"
     Value:    uuid,             // 随机生成的 UUID v4
     Path:     "/",
     MaxAge:   expireSeconds,    // 由 config.Session.ExpireDay 决定
@@ -350,7 +350,7 @@ export async function captchaChallenge(): Promise<string | null> {
   │                           │                           │
   │                           │  创建/查找 User           │
   │                           │  创建 Session             │
-  │                           │  Set-Cookie: sl-session   │
+  │                           │  Set-Cookie: monkeycode_ai_session   │
   │                           │                           │
   │  302 重定向到 /console/   │                           │
   │<──────────────────────────│                           │
@@ -385,7 +385,7 @@ GET /api/v1/users/baizhi/callback?code=xxx&state=xxx
 
 ```
 HTTP 302 Found
-Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+Set-Cookie: monkeycode_ai_session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
 Location: /console/
 ```
 
@@ -443,7 +443,7 @@ Content-Type: application/json
 ```json
 {
   "email": "user@example.com",
-  "password": "e10adc3949ba59abbe56e057f20f883e",
+  "password": "my_plain_password",
   "captcha_token": "captcha_token_from_cap_js"
 }
 ```
@@ -451,8 +451,10 @@ Content-Type: application/json
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `email` | string | 是 | 用户邮箱，前端会 `trim()` |
-| `password` | string | 是 | 密码的 **MD5 哈希值**（32 位小写 hex） |
+| `password` | string | 是 | 用户明文密码（前端直接传 `userPassword.trim()`，后端用 bcrypt 验证） |
 | `captcha_token` | string | 是 | CAP.js 验证码返回的 token |
+
+> **已验证**: 密码传输格式为**明文**，而非 MD5。后端 domain 注释中标注的"MD5加密后的值"是错误注释，实际前端直接传 `userPassword.trim()`，后端使用 `bcrypt.CompareHashAndPassword()` 验证。详见 `docs/protocol/auth-unresolved-verification.md` §1。
 
 ### Domain 类型定义
 
@@ -460,7 +462,7 @@ Content-Type: application/json
 // backend/domain/user.go
 type PasswordLoginReq struct {
     Email        string `json:"email"`
-    Password     string `json:"password"`      // MD5 哈希
+    Password     string `json:"password"`      // 明文密码（注释标注 MD5 是错误的）
     CaptchaToken string `json:"captcha_token"`
 }
 ```
@@ -470,17 +472,16 @@ type PasswordLoginReq struct {
 ```
 用户输入明文密码
        ↓
-前端: apiRequest 内部处理（可能 MD5 哈希）
+前端: userPassword.trim() 直接传明文（无 MD5 转换）
        ↓
-传输: { "password": "md5_hash_string" }
+传输: { "password": "plain_password_string" }
        ↓
-后端: 接收 MD5 哈希值，与数据库存储的密码比较
+后端: bcrypt.CompareHashAndPassword(db_hash, plain_password)
+       ↓
+验证成功 → 创建 Session
 ```
 
-**重要**: 前端代码中 `userPassword` 是用户直接输入的值。后端 domain 类型注释标注 `Password` 为 MD5。这意味着：
-- 前端可能在 `apiRequest` 工具函数内部做了 MD5 转换
-- 或者后端接收明文后自行 MD5 再比较
-- **需要实测确认**：发送明文密码 vs MD5 哈希，看哪个能成功
+**已验证结论**: 前端直接传明文密码，后端用 bcrypt 验证。domain 注释中标注"MD5加密后的值"是错误注释，无需实测。详见 `docs/protocol/auth-unresolved-verification.md` §1。
 
 ### 响应体
 
@@ -510,7 +511,7 @@ type PasswordLoginReq struct {
 **响应头**:
 
 ```
-Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+Set-Cookie: monkeycode_ai_session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
 ```
 
 **失败 — 验证码无效** (HTTP 200):
@@ -566,7 +567,7 @@ func (h *AuthHandler) PasswordLogin() web.HandlerFunc {
         }
 
         // 3. 创建 Session，cookie name = consts.MonkeyCodeAISession
-        //    (线上实际为 sl-session)
+        //    (即 "monkeycode_ai_session")
         if _, err := h.session.Save(c, consts.MonkeyCodeAISession, user.ID, user); err != nil {
             return err
         }
@@ -635,7 +636,7 @@ const handleUserLogin = async () => {
 
 ```
 GET /api/v1/users/status
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 ```
 
 **响应** (已登录):
@@ -664,14 +665,14 @@ Cookie: sl-session={uuid}
 
 ```
 POST /api/v1/users/logout
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 ```
 
 **响应**:
 
 ```
 HTTP 200 OK
-Set-Cookie: sl-session=; Path=/; Max-Age=-1; HttpOnly
+Set-Cookie: monkeycode_ai_session=; Path=/; Max-Age=-1; HttpOnly
 ```
 
 ```json
@@ -706,7 +707,7 @@ Content-Type: application/json
 ```json
 {
   "email": "manager@example.com",
-  "password": "e10adc3949ba59abbe56e057f20f883e",
+  "password": "my_plain_password",
   "captcha_token": "captcha_token_from_cap_js"
 }
 ```
@@ -714,8 +715,10 @@ Content-Type: application/json
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `email` | string | 是 | 管理员邮箱 |
-| `password` | string | 是 | 密码的 MD5 哈希值 |
+| `password` | string | 是 | 明文密码（与用户登录一致，前端直接传明文） |
 | `captcha_token` | string | 是 | CAP.js 验证码 token |
+
+> **注意**: 后端 domain 注释和 Swagger 文档中标注"password 字段需要传 MD5 加密后的值"是**错误注释**，实际前端代码 `login.tsx` 直接传 `teamManagerPassword.trim()` 明文。详见 `docs/protocol/auth-unresolved-verification.md` §1。
 
 ### Domain 类型定义
 
@@ -723,7 +726,7 @@ Content-Type: application/json
 // backend/domain/team.go
 type TeamLoginReq struct {
     Email        string `json:"email"`
-    Password     string `json:"password"`       // MD5 哈希
+    Password     string `json:"password"`       // 明文密码（注释标注 MD5 是错误的）
     CaptchaToken string `json:"captcha_token"`
 }
 ```
@@ -798,7 +801,7 @@ func (h *UserHandler) Login() web.HandlerFunc {
 | 项目 | 普通用户 | 团队管理员 |
 |------|---------|-----------|
 | API 端点 | `POST /api/v1/users/password-login` | `POST /api/v1/teams/users/login` |
-| Cookie 名 | `sl-session` | `monkeycode_ai_team_session` |
+| Cookie 名 | `monkeycode_ai_session` | `monkeycode_ai_team_session` |
 | 登录后跳转 | `/console/` | `/manager/` |
 | 权限范围 | 用户级 API | 团队管理级 API |
 | localStorage key | `login_user` | `login_manager` |
@@ -892,7 +895,7 @@ Gitea / Gitee / GitLab OAuth 主要用于**身份绑定**，将 Git 平台账号
 GET /api/v1/gitea/authorize_url
 GET /api/v1/gitee/authorize_url
 GET /api/v1/gitlab/authorize_url
-Cookie: sl-session={uuid}   (需要先登录)
+Cookie: monkeycode_ai_session={uuid}   (需要先登录)
 ```
 
 **请求参数**: 无
@@ -952,7 +955,7 @@ Location: /console/settings?oauth=error&msg=xxx
 
 ```
 GET /api/v1/oauth/bind
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 ```
 
 **响应体** (HTTP 200):
@@ -975,7 +978,7 @@ Cookie: sl-session={uuid}
 
 ```
 GET /api/v1/oauth/bind-users
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 ```
 
 **响应体** (HTTP 200):
@@ -992,7 +995,7 @@ Cookie: sl-session={uuid}
 
 ```
 DELETE /api/v1/oauth/unbind
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 Content-Type: application/json
 ```
 
@@ -1047,7 +1050,7 @@ Content-Type: application/json
 
 ### 关键说明
 
-- **需要先登录**: OAuth 绑定需要有效的 `sl-session` cookie
+- **需要先登录**: OAuth 绑定需要有效的 `monkeycode_ai_session` cookie
 - **不是独立登录方式**: Git OAuth 用于绑定身份，不能直接登录
 - **回调处理闭源**: 所有 OAuth callback 的 handler 不在开源后端中
 - **state 参数**: 由后端生成，回调时验证，防止 CSRF 攻击
@@ -1090,7 +1093,7 @@ GET /api/v1/auth/impersonate?token=xxx
   │                           │  确认管理员权限           │
   │                           │                           │
   │                           │  创建目标用户的 Session   │
-  │                           │  Set-Cookie: sl-session   │
+  │                           │  Set-Cookie: monkeycode_ai_session   │
   │                           │                           │
   │  302 → /console/          │                           │
   │<──────────────────────────│                           │
@@ -1108,7 +1111,7 @@ GET /api/v1/auth/impersonate?token=xxx
 
 ```
 HTTP 302 Found
-Set-Cookie: sl-session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
+Set-Cookie: monkeycode_ai_session={uuid}; Path=/; HttpOnly; SameSite=Lax; Max-Age={seconds}
 Location: /console/
 ```
 
@@ -1160,7 +1163,7 @@ func (m *AuthMiddleware) TeamAuthCheck() web.HandlerFunc
 ```
 请求到达
   ↓
-读取 Cookie (sl-session 或 monkeycode_ai_team_session)
+读取 Cookie (monkeycode_ai_session 或 monkeycode_ai_team_session)
   ↓
 Cookie 不存在 →
   Auth()    → 返回 401 { "code": 40100, "msg": "not logged in" }
@@ -1199,7 +1202,7 @@ Lookup 成功 → 从 Redis Hash 读取 session data
 
 ```
 PUT /api/v1/users/passwords/change
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 Content-Type: application/json
 ```
 
@@ -1207,15 +1210,15 @@ Content-Type: application/json
 
 ```json
 {
-  "current_password": "current_md5_hash",
-  "new_password": "new_md5_hash"
+  "current_password": "current_plain_password",
+  "new_password": "new_plain_password"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `current_password` | string | 条件必填 | 当前密码的 MD5（有旧密码时必填） |
-| `new_password` | string | 是 | 新密码的 MD5，8-32 字符 |
+| `current_password` | string | 条件必填 | 当前明文密码（有旧密码时必填） |
+| `new_password` | string | 是 | 新明文密码，8-32 字符 |
 
 **Domain 类型**:
 
@@ -1291,14 +1294,14 @@ Content-Type: application/json
 
 ```json
 {
-  "new_password": "new_md5_hash",
+  "new_password": "new_plain_password",
   "token": "reset_token_from_email"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `new_password` | string | 是 | 新密码的 MD5，8-32 字符 |
+| `new_password` | string | 是 | 新明文密码，8-32 字符 |
 | `token` | string | 是 | 重置密码邮件中的 token |
 
 **Domain 类型**:
@@ -1322,8 +1325,8 @@ Content-Type: application/json
 
 ```json
 {
-  "current_password": "current_md5_hash",
-  "new_password": "new_md5_hash"
+  "current_password": "current_plain_password",
+  "new_password": "new_plain_password"
 }
 ```
 
@@ -1331,7 +1334,7 @@ Content-Type: application/json
 
 ```
 PUT /api/v1/users/email/bind-request
-Cookie: sl-session={uuid}
+Cookie: monkeycode_ai_session={uuid}
 Content-Type: application/json
 ```
 
@@ -1381,9 +1384,9 @@ GET /api/v1/users/email/verify?token=xxx
 
 ```
 1. 在浏览器中正常登录 MonkeyCode
-2. 从浏览器 DevTools → Application → Cookies 中复制 sl-session 的值
+2. 从浏览器 DevTools → Application → Cookies 中复制 monkeycode_ai_session 的值
 3. 在反向代理配置中使用该 cookie 值
-4. 所有 API 请求携带 Cookie: sl-session={value}
+4. 所有 API 请求携带 Cookie: monkeycode_ai_session={value}
 ```
 
 **优点**: 无需处理验证码，实现简单
@@ -1408,10 +1411,10 @@ GET /api/v1/users/email/verify?token=xxx
 
 4. 调用登录 API
    POST /api/v1/users/password-login
-   Body: { email, password: md5(明文密码), captcha_token }
-   ← Set-Cookie: sl-session=xxx
+   Body: { email, password: 明文密码, captcha_token }
+   ← Set-Cookie: monkeycode_ai_session=xxx
 
-5. 提取 Set-Cookie 中的 sl-session 值
+5. 提取 Set-Cookie 中的 monkeycode_ai_session 值
 ```
 
 ### 方案三: 百智云 OAuth 自动化
@@ -1420,7 +1423,7 @@ GET /api/v1/users/email/verify?token=xxx
 1. GET /api/v1/users/login → 获取百智云 OAuth URL
 2. [障碍] 需要百智云账号的认证凭据
 3. 完成百智云 OAuth 流程
-4. 从回调中提取 sl-session cookie
+4. 从回调中提取 monkeycode_ai_session cookie
 ```
 
 ### Session 保活
@@ -1434,7 +1437,7 @@ Session 过期后需要重新登录
 
 ```
 所有需要认证的请求必须携带:
-Cookie: sl-session={session_uuid}
+Cookie: monkeycode_ai_session={session_uuid}
 
 推荐同时携带:
 Content-Type: application/json
@@ -1447,6 +1450,6 @@ Content-Type: application/json
 | 角色 | Session Cookie | 可访问端点 |
 |------|---------------|-----------|
 | 未认证 | 无 | 公开端点（验证码、登录、密码重置） |
-| 普通用户 | `sl-session` | 用户级端点（模型、任务、对话、代码仓库） |
+| 普通用户 | `monkeycode_ai_session` | 用户级端点（模型、任务、对话、代码仓库） |
 | 团队管理员 | `monkeycode_ai_team_session` | 团队管理端点（团队模型、成员、分组） |
-| 系统管理员 | `sl-session` (admin flag) | 所有端点 + impersonate |
+| 系统管理员 | `monkeycode_ai_session` (admin flag) | 所有端点 + impersonate |

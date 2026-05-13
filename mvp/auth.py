@@ -27,7 +27,7 @@ class MonkeyCodeAuth:
         """普通用户密码登录
 
         API: POST /api/v1/users/password-login
-        Cookie: sl-session
+        Cookie: monkeycode_ai_session
         """
         email = email or USERNAME
         password = password or PASSWORD

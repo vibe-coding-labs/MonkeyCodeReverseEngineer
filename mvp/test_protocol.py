@@ -1,7 +1,7 @@
 """MonkeyCode 协议验证 MVP — 端到端验证逆向出的通信协议
 
 验证项:
-1. Cookie-based Session 认证（Cookie 名: sl-session）
+1. Cookie-based Session 认证（Cookie 名: monkeycode_ai_session）
 2. 模型列表 API
 3. 公开模型识别
 4. WebSocket 任务流连接
@@ -257,7 +257,7 @@ def main():
 
     # 关键修正提示
     print_header("关键协议修正")
-    print(f"  Cookie 名: sl-session (非之前分析的 monkeycode_ai_session)")
+    print(f"  Cookie 名: monkeycode_ai_session (源码硬编码，线上不会覆盖)")
     print(f"  Team 登录端点: POST /api/v1/teams/users/login (已验证存在)")
     print(f"  登录参数: username + password (MD5 哈希)")
     print(f"  未认证返回: 401 Unauthorized")

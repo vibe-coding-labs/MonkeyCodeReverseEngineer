@@ -106,7 +106,7 @@
 ```json
 {
   "email": "admin@company.com",
-  "password": "md5_password",
+  "password": "plain_password",
   "captcha_token": "captcha-redeem-token"
 }
 ```

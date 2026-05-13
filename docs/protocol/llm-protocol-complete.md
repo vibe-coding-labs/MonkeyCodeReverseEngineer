@@ -713,7 +713,7 @@ if r.Resource == nil {
 
 **端点**: `GET /api/v1/users/tasks/stream?id={taskId}&mode={new|attach}`
 
-**认证**: Cookie `sl-session={session_id}`
+**认证**: Cookie `monkeycode_ai_session={session_id}`
 
 **协议**: `coder/websocket`（文本帧，JSON 格式）
 
@@ -1125,11 +1125,13 @@ data: {"type":"error","error":"识别失败"}
 
 | 代理实现 | 实际后端 |
 |---------|---------|
-| `monkeycode_ai_session` | `sl-session` |
+| `monkeycode_ai_session` | `monkeycode_ai_session` |
+
+> 注：之前文档错误地记录为 `sl-session`，实际后端 Cookie 名称硬编码为 `monkeycode_ai_session`（见 `consts/auth.go`），线上环境不会覆盖。
 
 ### 10.3 WebSocket 认证
 
-代理实现通过 `headers: { Cookie: "sl-session=xxx" }` 传递认证，实际后端通过 `coder/websocket` 的 `Accept()` 从 HTTP 请求中读取 Cookie。
+代理实现通过 `headers: { Cookie: "monkeycode_ai_session=xxx" }` 传递认证，实际后端通过 `coder/websocket` 的 `Accept()` 从 HTTP 请求中读取 Cookie。
 
 ---
 
@@ -1141,7 +1143,7 @@ data: {"type":"error","error":"识别失败"}
 # 1. 登录获取 session cookie
 curl -c cookies.txt -X POST https://monkeycode-ai.com/api/v1/teams/users/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"user@example.com","password":"md5hash"}'
+  -d '{"email":"user@example.com","password":"plain_password"}'
 
 # 2. 获取可用模型
 curl -b cookies.txt https://monkeycode-ai.com/api/v1/users/models | jq .
@@ -1162,7 +1164,7 @@ TASK_ID=$(echo $TASK | jq -r '.data.id')
 
 # 4. 连接 WebSocket 流
 wscat -c "wss://monkeycode-ai.com/api/v1/users/tasks/stream?id=$TASK_ID&mode=new" \
-  -H "Cookie: sl-session=$(cat cookies.txt | grep sl-session | awk '{print $NF}')"
+  -H "Cookie: monkeycode_ai_session=$(cat cookies.txt | grep monkeycode_ai_session | awk '{print $NF}')"
 
 # 5. 发送用户输入（WebSocket 文本帧）
 {"type":"user-input","data":"{\"content\":\"53687269746520612068656c6c6f20776f726c6420696e20507974686f6e\",\"attachments\":[]}"}

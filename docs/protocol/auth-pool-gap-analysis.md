@@ -1,6 +1,7 @@
 # MonkeyCode 认证协议缺口分析（账号池视角）
 
 > 分析日期: 2026-05-11
+> **所有缺口已解决 (2026-05-12)**: 5 个未决问题全部通过源码级验证确认。详见 `docs/protocol/auth-unresolved-verification.md`。
 
 ---
 

@@ -221,7 +221,7 @@ Session 生命周期:
 
 ```text
 请求头注入:
-  Cookie: sl-session={session_uuid}
+  Cookie: monkeycode_ai_session={session_uuid}
   Content-Type: application/json
 
 错误处理:

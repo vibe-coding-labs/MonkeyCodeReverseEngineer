@@ -18,7 +18,7 @@
    - 重定向到 OAuth provider
    - 回调后设置 session cookie
 2. **Team 登录** (`POST /api/v1/teams/users/login`)
-   - Body: `{username, password}` (password 为 MD5 哈希)
+   - Body: `{email, password}` (password 为明文，后端用 bcrypt 验证)
    - 成功后设置 session cookie
 3. **Admin Impersonate** (`GET /api/v1/auth/impersonate?user_id=xxx`)
    - 仅管理员可用

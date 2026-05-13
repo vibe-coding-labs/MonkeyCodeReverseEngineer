@@ -1,7 +1,7 @@
 import os
 
 BASE_URL = os.getenv("MONKEYCODE_BASE_URL", "https://monkeycode-ai.com")
-SESSION_COOKIE_NAME = "sl-session"
+SESSION_COOKIE_NAME = "monkeycode_ai_session"
 
 # 认证配置（二选一）
 USERNAME = os.getenv("MONKEYCODE_USERNAME", "")
