@@ -1,0 +1,14 @@
+# Downloaded app binaries (large, not source code)
+downloads/
+
+# Extracted binary assets
+*.dmg
+*.dylib
+*.framework
+*.app
+*.nib
+*.pak
+*.dat
+
+# OS files
+.DS_Store
