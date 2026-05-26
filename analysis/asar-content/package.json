@@ -1,0 +1,9 @@
+{
+  "name": "monkeycode-desktop",
+  "private": true,
+  "version": "260324.1.22",
+  "description": "MonkeyCode 桌面客户端（Electron）",
+  "author": "MonkeyCode",
+  "type": "commonjs",
+  "main": "electron/main.cjs"
+}
