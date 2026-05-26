@@ -1,0 +1,13 @@
+[
+  {
+    "email": "account1@example.com",
+    "password": "password1",
+    "mode": "user"
+  },
+  {
+    "email": "account2@example.com",
+    "password": "password2",
+    "mode": "user",
+    "cookie": "from-browser-devtools"
+  }
+]

@@ -25,9 +25,10 @@ export class TaskRunner {
     this.auth = auth
   }
 
-  /** 创建 VM */
-  async createVM(): Promise<string> {
-    const headers = await this.auth.authHeaders()
+  /** 获取或创建 VM（支持号池） */
+  async createVM(authOverride?: AuthManager): Promise<string> {
+    const auth = authOverride || this.auth
+    const headers = await auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/hosts/vms`
 
     const response = await fetch(url, {
@@ -45,9 +46,10 @@ export class TaskRunner {
     return data.id || data.vm_id
   }
 
-  /** 列出已有 VM */
-  async listVMs(): Promise<{ id: string; status: string }[]> {
-    const headers = await this.auth.authHeaders()
+  /** 列出已有 VM（支持号池） */
+  async listVMs(authOverride?: AuthManager): Promise<{ id: string; status: string }[]> {
+    const auth = authOverride || this.auth
+    const headers = await auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/hosts/vms`
 
     const response = await fetch(url, { headers })
@@ -61,8 +63,9 @@ export class TaskRunner {
   }
 
   /** 创建任务 */
-  async createTask(vmId: string, model: MonkeyCodeModel, prompt: string): Promise<string> {
-    const headers = await this.auth.authHeaders()
+  async createTask(vmId: string, model: MonkeyCodeModel, prompt: string, authOverride?: AuthManager): Promise<string> {
+    const auth = authOverride || this.auth
+    const headers = await auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks`
 
     const apiType = model.interface_type === "anthropic" ? "anthropic" : "openai"
@@ -100,15 +103,17 @@ export class TaskRunner {
   async streamTask(
     taskId: string,
     onChunk: (chunk: OpenAIChatCompletionChunk) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    authOverride?: AuthManager
   ): Promise<void> {
+    const auth = authOverride || this.auth
     return new Promise((resolve, reject) => {
       const wsBaseUrl = httpToWs(MONKEYCODE_BASE_URL)
       const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${taskId}&mode=new`
 
       const ws = new WebSocket(wsUrl, {
         headers: {
-          Cookie: `${this.auth.getSessionCookieSync()}`,
+          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
         },
       })
 
@@ -289,14 +294,15 @@ export class TaskRunner {
   }
 
   /** 发送用户输入到任务流 */
-  async sendUserInput(taskId: string, content: string): Promise<void> {
+  async sendUserInput(taskId: string, content: string, authOverride?: AuthManager): Promise<void> {
+    const auth = authOverride || this.auth
     const wsBaseUrl = httpToWs(MONKEYCODE_BASE_URL)
     const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${taskId}&mode=attach`
 
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(wsUrl, {
         headers: {
-          Cookie: `${this.auth.getSessionCookieSync()}`,
+          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
         },
       })
 

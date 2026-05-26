@@ -32,10 +32,10 @@ export class AuthManager {
     this.passwordHash = process.env.MONKEYCODE_PASSWORD_HASH || ""
     this.captchaToken = process.env.MONKEYCODE_CAPTCHA_TOKEN || ""
 
-    // 如果提供了明文密码，自动计算 MD5
+    // 如果提供了明文密码，直接使用（API 接收明文，不是 MD5）
     const plainPassword = process.env.MONKEYCODE_PASSWORD || ""
     if (plainPassword && !this.passwordHash) {
-      this.passwordHash = md5(plainPassword)
+      this.passwordHash = plainPassword.trim()
     }
 
     // 登录模式
@@ -61,6 +61,19 @@ export class AuthManager {
     }
     await this.login()
     return this.sessionCookie
+  }
+
+  /** 号池：设置凭据（不自动登录，由 AccountPool 控制时机） */
+  setCredentials(email: string, password: string, mode: LoginMode = "user"): void {
+    this.email = email
+    this.passwordHash = password // 明文
+    this.loginMode = mode
+    this.sessionCookieName = mode === "team" ? TEAM_SESSION_COOKIE_NAME : SESSION_COOKIE_NAME
+  }
+
+  /** 获取当前账号的 email */
+  getEmail(): string {
+    return this.email
   }
 
   /** 根据登录模式执行登录 */
