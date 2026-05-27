@@ -10,6 +10,14 @@ import { ModelManager } from "./models.js"
 import { TaskRunner } from "./task-runner.js"
 import { AccountPool, AccountConfig, loadAccountFromEnv, loadAccountConfigs } from "./account-pool.js"
 import { createAPIRouter } from "./api-routes.js"
+import {
+  initiateLogin,
+  completeLogin,
+  verifySession,
+  discoverImageId,
+  discoverModels,
+  loginWithCallbackUrl,
+} from "./admin-login.js"
 
 const PORT = parseInt(process.env.PROXY_PORT || "9090", 10)
 
@@ -151,6 +159,137 @@ async function main() {
     }
   })
 
+  // ========== OAuth 登录端点 ==========
+
+  // Step 1: 发送短信验证码（百智云 OAuth 流程）
+  app.post("/admin/login/send-code", async (req, res) => {
+    try {
+      const { phone } = req.body
+      if (!phone) {
+        res.status(400).json({ error: "phone is required" })
+        return
+      }
+      const result = await initiateLogin(phone)
+      res.json(result)
+    } catch (err: any) {
+      console.error("[Login] Send code error:", err.message)
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // Step 2: 验证短信码 + 完成 OAuth 登录 → 获取 session cookie + 自动发现 image_id
+  app.post("/admin/login/verify", async (req, res) => {
+    try {
+      const { code } = req.body
+      if (!code) {
+        res.status(400).json({ error: "SMS code is required" })
+        return
+      }
+      const result = await completeLogin(code)
+
+      // 自动注入到当前 AuthManager
+      if (singleAuth) {
+        singleAuth.setSessionCookie(result.sessionCookie)
+      }
+
+      // 如果发现了 image_id，自动设置到环境变量
+      if (result.imageId) {
+        process.env.MONKEYCODE_IMAGE_ID = result.imageId
+        console.log(`[Login] Auto-discovered image_id: ${result.imageId} (${result.imageName})`)
+      }
+
+      // 尝试刷新模型缓存
+      try {
+        modelManager.clearCache()
+        await modelManager.fetchModels()
+      } catch {
+        // ignore
+      }
+
+      res.json({
+        status: "ok",
+        message: "Login successful",
+        sessionCookie: result.sessionCookie,
+        imageId: result.imageId,
+        imageName: result.imageName,
+        modelCount: result.models?.length || 0,
+        user: result.user ? {
+          id: result.user.id,
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+        } : undefined,
+      })
+    } catch (err: any) {
+      console.error("[Login] Verify error:", err.message)
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // 手动模式: 直接用 OAuth 回调 URL 登录
+  app.post("/admin/login/callback", async (req, res) => {
+    try {
+      const { callbackUrl } = req.body
+      if (!callbackUrl) {
+        res.status(400).json({ error: "callbackUrl is required" })
+        return
+      }
+      const result = await loginWithCallbackUrl(callbackUrl)
+
+      if (singleAuth) {
+        singleAuth.setSessionCookie(result.sessionCookie)
+      }
+
+      if (result.imageId) {
+        process.env.MONKEYCODE_IMAGE_ID = result.imageId
+      }
+
+      res.json({
+        status: "ok",
+        sessionCookie: result.sessionCookie,
+        imageId: result.imageId,
+        imageName: result.imageName,
+      })
+    } catch (err: any) {
+      console.error("[Login] Callback error:", err.message)
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // 自动发现 image_id（用已有 session）
+  app.get("/admin/discover", async (_req, res) => {
+    try {
+      const cookie = singleAuth?.getSessionCookieSync()
+      if (!cookie) {
+        res.status(400).json({ error: "No session cookie. Login first." })
+        return
+      }
+
+      const [imageResult, models] = await Promise.all([
+        discoverImageId(cookie),
+        discoverModels(cookie),
+      ])
+
+      if (imageResult) {
+        process.env.MONKEYCODE_IMAGE_ID = imageResult.imageId
+      }
+
+      res.json({
+        imageId: imageResult?.imageId || null,
+        imageName: imageResult?.imageName || null,
+        models: models.map((m: any) => ({
+          id: m.id,
+          model: m.model,
+          provider: m.provider,
+          display_name: m.display_name,
+          is_free: m.is_free,
+        })),
+      })
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
   // 启动服务器
   app.listen(PORT, () => {
     console.log()
@@ -161,6 +300,10 @@ async function main() {
     console.log(`  POST /v1/chat/completions  - Chat completion (streaming supported)`)
     console.log(`  GET  /health               - Health check`)
     console.log(`  POST /admin/session        - Set session cookie manually`)
+    console.log(`  POST /admin/login/send-code  - Send SMS code (百智云 OAuth)`)
+    console.log(`  POST /admin/login/verify     - Verify SMS code + login`)
+    console.log(`  POST /admin/login/callback   - Login with OAuth callback URL`)
+    console.log(`  GET  /admin/discover         - Auto-discover image_id & models`)
     console.log(`  POST /admin/refresh-models - Refresh model cache`)
     const poolStats = accountPool?.getStats()
     if (poolStats) {
