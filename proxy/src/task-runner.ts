@@ -1,4 +1,4 @@
-// MonkeyCode 任务流 — 通过 WebSocket 创建任务并接收流式输出
+// MonkeyCode 任务流 — 通过正确的 API 格式创建任务并接收流式输出
 
 import WebSocket from "ws"
 import { AuthManager } from "./auth.js"
@@ -7,11 +7,11 @@ import type {
   TaskStreamMessage,
   ACPSessionUpdate,
   OpenAIChatCompletionChunk,
-  OpenAIChatCompletionRequest,
-  OpenAIMessage,
 } from "./types.js"
 
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
+const DEFAULT_HOST_ID = process.env.MONKEYCODE_HOST_ID || "public_host"
+const DEFAULT_IMAGE_ID = process.env.MONKEYCODE_IMAGE_ID || ""
 
 /** 将 HTTP URL 转换为 WebSocket URL */
 function httpToWs(url: string): string {
@@ -25,63 +25,47 @@ export class TaskRunner {
     this.auth = auth
   }
 
-  /** 获取或创建 VM（支持号池） */
-  async createVM(authOverride?: AuthManager): Promise<string> {
-    const auth = authOverride || this.auth
-    const headers = await auth.authHeaders()
-    const url = `${MONKEYCODE_BASE_URL}/api/v1/users/hosts/vms`
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({}),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to create VM (${response.status}): ${await response.text()}`)
+  /** 创建任务 — 使用实际后端 API 格式 (llm-protocol-complete.md §4.5) */
+  async createTask(
+    model: MonkeyCodeModel,
+    prompt: string,
+    options?: {
+      hostId?: string
+      imageId?: string
+      authOverride?: AuthManager
     }
-
-    const result = await response.json()
-    const data = result.data || result
-    return data.id || data.vm_id
-  }
-
-  /** 列出已有 VM（支持号池） */
-  async listVMs(authOverride?: AuthManager): Promise<{ id: string; status: string }[]> {
-    const auth = authOverride || this.auth
-    const headers = await auth.authHeaders()
-    const url = `${MONKEYCODE_BASE_URL}/api/v1/users/hosts/vms`
-
-    const response = await fetch(url, { headers })
-    if (!response.ok) {
-      throw new Error(`Failed to list VMs (${response.status}): ${await response.text()}`)
-    }
-
-    const result = await response.json()
-    const data = result.data || result
-    return data.vms || data || []
-  }
-
-  /** 创建任务 */
-  async createTask(vmId: string, model: MonkeyCodeModel, prompt: string, authOverride?: AuthManager): Promise<string> {
-    const auth = authOverride || this.auth
+  ): Promise<string> {
+    const auth = options?.authOverride || this.auth
     const headers = await auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks`
 
-    const apiType = model.interface_type === "anthropic" ? "anthropic" : "openai"
+    const hostId = options?.hostId || DEFAULT_HOST_ID
+    const imageId = options?.imageId || DEFAULT_IMAGE_ID
+
+    if (!imageId) {
+      throw new Error(
+        "MONKEYCODE_IMAGE_ID is required. Set it in .env or pass imageId option. " +
+        "Get it from browser DevTools → Network → POST /api/v1/users/tasks → image_id field."
+      )
+    }
 
     const body = {
-      vm_id: vmId,
-      llm: {
-        api_key: model.api_key,
-        base_url: model.base_url,
-        model: model.model,
-        api_type: apiType,
-        temperature: model.temperature,
+      content: prompt,
+      host_id: hostId,
+      image_id: imageId,
+      model_id: model.id,
+      cli_name: "claude",
+      resource: {
+        core: 1,
+        memory: 1073741824,  // 1 GB
+        life: 3600,           // 1 hour
       },
-      coding_agent: 2, // Claude agent
-      prompt,
-      working_dir: "/workspace",
+      repo: {
+        repo_url: "",
+        branch: "master",
+        repo_filename: "",
+        zip_url: "",
+      },
     }
 
     const response = await fetch(url, {
@@ -91,7 +75,8 @@ export class TaskRunner {
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to create task (${response.status}): ${await response.text()}`)
+      const respText = await response.text()
+      throw new Error(`Failed to create task (${response.status}): ${respText}`)
     }
 
     const result = await response.json()
@@ -102,6 +87,7 @@ export class TaskRunner {
   /** 通过 WebSocket 连接任务流并收集输出 */
   async streamTask(
     taskId: string,
+    prompt: string,
     onChunk: (chunk: OpenAIChatCompletionChunk) => void,
     signal?: AbortSignal,
     authOverride?: AuthManager
@@ -118,7 +104,6 @@ export class TaskRunner {
       })
 
       let resolved = false
-      let fullContent = ""
 
       const cleanup = () => {
         resolved = true
@@ -136,6 +121,14 @@ export class TaskRunner {
 
       ws.on("open", () => {
         console.log(`[TaskRunner] WebSocket connected for task ${taskId}`)
+        // mode=new 要求客户端先发送 user-input 才开始流式输出
+        // 使用旧格式（纯文本）兼容性最好
+        const userMsg = {
+          type: "user-input",
+          data: prompt,
+        }
+        ws.send(JSON.stringify(userMsg))
+        console.log(`[TaskRunner] Sent user-input for task ${taskId}`)
       })
 
       ws.on("message", (raw: WebSocket.Data) => {
@@ -143,10 +136,15 @@ export class TaskRunner {
 
         try {
           const msg: TaskStreamMessage = JSON.parse(raw.toString())
-          this.handleStreamMessage(msg, taskId, onChunk, (content) => {
-            fullContent = content
-          })
-        } catch (e) {
+
+          // 心跳响应
+          if (msg.type === "ping") {
+            ws.send(JSON.stringify({ type: "ping" }))
+            return
+          }
+
+          this.handleStreamMessage(msg, taskId, onChunk)
+        } catch {
           // 忽略非 JSON 消息
         }
       })
@@ -179,18 +177,21 @@ export class TaskRunner {
   private handleStreamMessage(
     msg: TaskStreamMessage,
     taskId: string,
-    onChunk: (chunk: OpenAIChatCompletionChunk) => void,
-    onContent: (content: string) => void
+    onChunk: (chunk: OpenAIChatCompletionChunk) => void
   ): void {
     const chatId = `chatcmpl-${taskId}`
     const now = Math.floor(Date.now() / 1000)
 
     switch (msg.type) {
+      case "task-started":
+        console.log(`[TaskRunner] Task ${taskId} started`)
+        break
+
       case "task-running":
         if (msg.kind === "acp_event") {
           try {
             const acp: ACPSessionUpdate = JSON.parse(msg.data)
-            this.handleACPEvent(acp, chatId, now, onChunk, onContent)
+            this.handleACPEvent(acp, chatId, now, onChunk)
           } catch {
             // 忽略解析错误
           }
@@ -198,40 +199,24 @@ export class TaskRunner {
         break
 
       case "task-ended":
-        // 发送结束 chunk
         onChunk({
           id: chatId,
           object: "chat.completion.chunk",
           created: now,
           model: "monkeycode",
-          choices: [
-            {
-              index: 0,
-              delta: {},
-              finish_reason: "stop",
-            },
-          ],
+          choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
         })
         break
 
       case "task-error":
-        // 将错误作为内容发送
         onChunk({
           id: chatId,
           object: "chat.completion.chunk",
           created: now,
           model: "monkeycode",
-          choices: [
-            {
-              index: 0,
-              delta: { content: `[Error] ${msg.data}` },
-              finish_reason: null,
-            },
-          ],
+          choices: [{ index: 0, delta: { content: `[Error] ${msg.data}` }, finish_reason: null }],
         })
         break
-
-      // 忽略 ping, cursor, task-started 等
     }
   }
 
@@ -240,30 +225,10 @@ export class TaskRunner {
     acp: ACPSessionUpdate,
     chatId: string,
     now: number,
-    onChunk: (chunk: OpenAIChatCompletionChunk) => void,
-    onContent: (content: string) => void
+    onChunk: (chunk: OpenAIChatCompletionChunk) => void
   ): void {
     switch (acp.type) {
       case "agent_message_chunk": {
-        const text = acp.text || acp.content || ""
-        onChunk({
-          id: chatId,
-          object: "chat.completion.chunk",
-          created: now,
-          model: "monkeycode",
-          choices: [
-            {
-              index: 0,
-              delta: { content: text },
-              finish_reason: null,
-            },
-          ],
-        })
-        break
-      }
-
-      case "agent_thought_chunk": {
-        // 思考内容，可以作为 reasoning_content 或跳过
         const text = acp.text || acp.content || ""
         if (text) {
           onChunk({
@@ -271,65 +236,42 @@ export class TaskRunner {
             object: "chat.completion.chunk",
             created: now,
             model: "monkeycode",
-            choices: [
-              {
-                index: 0,
-                delta: { content: `[Thinking] ${text}` },
-                finish_reason: null,
-              },
-            ],
+            choices: [{ index: 0, delta: { content: text }, finish_reason: null }],
           })
         }
         break
       }
 
-      case "usage_update": {
-        // Token 使用量，在最后 chunk 中附带
-        // 不单独发送，等 task-ended 时处理
+      case "agent_thought_chunk": {
+        const text = acp.text || acp.content || ""
+        if (text) {
+          onChunk({
+            id: chatId,
+            object: "chat.completion.chunk",
+            created: now,
+            model: "monkeycode",
+            choices: [{ index: 0, delta: { content: `[Thinking] ${text}` }, finish_reason: null }],
+          })
+        }
         break
       }
 
-      // 忽略其他 ACP 事件
+      case "usage_update":
+        // Token usage — recorded but not sent as separate chunk
+        break
     }
   }
 
-  /** 发送用户输入到任务流 */
-  async sendUserInput(taskId: string, content: string, authOverride?: AuthManager): Promise<void> {
-    const auth = authOverride || this.auth
-    const wsBaseUrl = httpToWs(MONKEYCODE_BASE_URL)
-    const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${taskId}&mode=attach`
-
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(wsUrl, {
-        headers: {
-          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
-        },
-      })
-
-      ws.on("open", () => {
-        const msg = {
-          type: "user-input",
-          data: JSON.stringify({
-            content: Buffer.from(content).toString("base64"),
-            attachments: [],
-          }),
-        }
-        ws.send(JSON.stringify(msg))
-        setTimeout(() => {
-          ws.close()
-          resolve()
-        }, 1000)
-      })
-
-      ws.on("error", reject)
-    })
-  }
-
   /** 停止任务 */
-  async stopTask(taskId: string): Promise<void> {
-    const headers = await this.auth.authHeaders()
-    const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks/${taskId}/stop`
+  async stopTask(taskId: string, authOverride?: AuthManager): Promise<void> {
+    const auth = authOverride || this.auth
+    const headers = await auth.authHeaders()
+    const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks/stop`
 
-    await fetch(url, { method: "POST", headers })
+    await fetch(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ id: taskId }),
+    })
   }
 }

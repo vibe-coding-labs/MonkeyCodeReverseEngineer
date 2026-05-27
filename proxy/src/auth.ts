@@ -9,8 +9,6 @@
 // - 所有密码登录需要 captcha_token (go-cap 验证码系统)
 // - 自动化场景建议直接使用浏览器提取的 Session Cookie
 
-import crypto from "crypto"
-
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
 const SESSION_COOKIE_NAME = "monkeycode_ai_session"
 const TEAM_SESSION_COOKIE_NAME = "monkeycode_ai_team_session"
@@ -229,9 +227,4 @@ export class AuthManager {
 
     return match[1]
   }
-}
-
-/** MD5 哈希 */
-export function md5(input: string): string {
-  return crypto.createHash("md5").update(input).digest("hex")
 }

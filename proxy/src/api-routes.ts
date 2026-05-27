@@ -60,26 +60,16 @@ export function createAPIRouter(
       // 构造 prompt
       const prompt = messagesToPrompt(body.messages)
 
-      // 获取或创建 VM
-      let vmId = await getOrCreateVM(taskRunner, accountAuth || undefined)
-      const creatingAuth = accountAuth || undefined
-
-      // 创建任务
-      const taskId = await taskRunner.createTask(vmId, model, prompt, creatingAuth)
+      // 创建任务（不需要 VM 管理，task API 自动处理）
+      const taskId = await taskRunner.createTask(model, prompt, {
+        authOverride: accountAuth || undefined,
+      })
       console.log(`[Chat] Task created: ${taskId}, model: ${model.model}${usePool ? " (pooled)" : ""}`)
 
       if (body.stream) {
-        // 流式响应 — WS 独占该账号直到结束
-        await handleStreamResponse(res, taskRunner, taskId, model, accountPool, accountAuth)
+        await handleStreamResponse(res, taskRunner, taskId, model, prompt, accountPool, accountAuth)
       } else {
-        // 非流式响应
-        await handleNonStreamResponse(res, taskRunner, taskId, model, accountPool, accountAuth)
-      }
-
-      // 非 WS 模式释放账号（WS 模式在流结束后由 handleStreamResponse 释放）
-      if (!body.stream && accountAuth && accountPool) {
-        // 如果是 WS 锁定的，需要释放；但 HTTP 获取的是非锁的，不需要主动释放
-        accountPool
+        await handleNonStreamResponse(res, taskRunner, taskId, model, prompt, accountPool, accountAuth)
       }
     } catch (err: any) {
       console.error("[Chat] Error:", err.message)
@@ -110,21 +100,13 @@ function messagesToPrompt(messages: OpenAIMessage[]): string {
     .join("\n\n")
 }
 
-/** 获取或创建 VM */
-async function getOrCreateVM(taskRunner: TaskRunner, auth?: import("./auth.js").AuthManager): Promise<string> {
-  const vms = await taskRunner.listVMs(auth)
-  const activeVm = vms.find((v) => v.status === "running" || v.status === "ready")
-  if (activeVm) return activeVm.id
-
-  return await taskRunner.createVM(auth)
-}
-
 /** 流式响应处理 */
 async function handleStreamResponse(
   res: Response,
   taskRunner: TaskRunner,
   taskId: string,
   model: import("./types.js").MonkeyCodeModel,
+  prompt: string,
   pool?: AccountPool,
   auth?: import("./auth.js").AuthManager | null
 ): Promise<void> {
@@ -147,6 +129,7 @@ async function handleStreamResponse(
   try {
     await taskRunner.streamTask(
       taskId,
+      prompt,
       (chunk: OpenAIChatCompletionChunk) => {
         sendSSE(chunk)
       },
@@ -159,7 +142,6 @@ async function handleStreamResponse(
     sendSSE({ object: "done" })
     res.write("data: [DONE]\n\n")
     res.end()
-    // WS 结束后释放账号
     if (auth && pool) {
       pool.releaseWs(auth)
     }
@@ -172,12 +154,13 @@ async function handleNonStreamResponse(
   taskRunner: TaskRunner,
   taskId: string,
   model: import("./types.js").MonkeyCodeModel,
+  prompt: string,
   pool?: AccountPool,
   auth?: import("./auth.js").AuthManager | null
 ): Promise<void> {
   let fullContent = ""
 
-  await taskRunner.streamTask(taskId, (chunk: OpenAIChatCompletionChunk) => {
+  await taskRunner.streamTask(taskId, prompt, (chunk: OpenAIChatCompletionChunk) => {
     for (const choice of chunk.choices) {
       if (choice.delta?.content) {
         fullContent += choice.delta.content

@@ -50,7 +50,7 @@ export type AccessLevel = "basic" | "pro" | "ultra"
 export type OwnerType = "private" | "team" | "public"
 
 export interface MonkeyCodeModel {
-  id: number
+  id: string  // UUID string from backend
   provider: ModelProvider
   api_key: string
   base_url: string
@@ -67,40 +67,6 @@ export interface MonkeyCodeModel {
   name: string
   display_name: string
   description: string
-}
-
-// ========== 任务 ==========
-
-export type CodingAgent = 1 | 2 | 3 | 4
-// 1 = Codex, 2 = Claude, 3 = MCAIReview, 4 = OpenCode
-
-export interface CreateTaskReq {
-  vm_id: string
-  llm: LLMConfig
-  coding_agent: CodingAgent
-  mcp_configs: MCPConfig[]
-  config_files: ConfigFile[]
-  prompt: string
-  working_dir: string
-}
-
-export interface LLMConfig {
-  api_key: string
-  base_url: string
-  model: string
-  api_type: "anthropic" | "openai"
-  temperature: number
-}
-
-export interface MCPConfig {
-  name: string
-  url: string
-  headers: Record<string, string>
-}
-
-export interface ConfigFile {
-  path: string
-  content: string
 }
 
 // ========== WebSocket 消息 ==========
