@@ -1,6 +1,7 @@
 // MonkeyCode Reverse Proxy — 主入口
 // 将 MonkeyCode 内置 LLM 暴露为 OpenAI 兼容 API
 // 支持单账号模式和号池模式
+// 支持多轮对话：通过 conversation_id 复用任务/VM
 
 import express from "express"
 import cors from "cors"
@@ -9,6 +10,7 @@ import { AuthManager } from "./auth.js"
 import { ModelManager } from "./models.js"
 import { TaskRunner } from "./task-runner.js"
 import { AccountPool, AccountConfig, loadAccountFromEnv, loadAccountConfigs } from "./account-pool.js"
+import { ConversationManager } from "./conversation-manager.js"
 import { createAPIRouter } from "./api-routes.js"
 import {
   initiateLogin,
@@ -109,8 +111,15 @@ async function main() {
     })
   })
 
-  // OpenAI 兼容 API（传入号池）
-  app.use(createAPIRouter(modelManager, taskRunner, accountPool))
+  // 初始化对话管理器
+  const conversationManager = new ConversationManager({
+    conversationTimeoutMs: 30 * 60 * 1000, // 30 分钟超时
+    cleanupIntervalMs: 5 * 60 * 1000, // 5 分钟清理一次
+  })
+  console.log("[Init] ConversationManager initialized")
+
+  // OpenAI 兼容 API（传入号池和对话管理器）
+  app.use(createAPIRouter(modelManager, taskRunner, accountPool, conversationManager))
 
   // 手动设置 Session Cookie 的端点
   app.post("/admin/session", express.text(), (req, res) => {
@@ -298,6 +307,7 @@ async function main() {
     console.log("Endpoints:")
     console.log(`  GET  /v1/models            - List available models`)
     console.log(`  POST /v1/chat/completions  - Chat completion (streaming supported)`)
+    console.log(`  POST /v1/responses         - Responses API (Codex native, streaming)`)
     console.log(`  GET  /health               - Health check`)
     console.log(`  POST /admin/session        - Set session cookie manually`)
     console.log(`  POST /admin/login/send-code  - Send SMS code (百智云 OAuth)`)

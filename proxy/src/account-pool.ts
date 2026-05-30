@@ -20,6 +20,7 @@ const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeyco
 const SESSION_MAX_AGE_MS = 29 * 24 * 60 * 60 * 1000 // 29 天提前重登录
 const HEALTH_CHECK_INTERVAL_MS = 60 * 60 * 1000 // 1 小时
 const HTTP_RETRY_MAX = 3
+const WS_LOCK_MAX_MS = parseInt(process.env.MONKEYCODE_TASK_TIMEOUT_MS || "3600000", 10) + 60_000 // task timeout + 1min buffer
 
 export type AccountStatus = "CREATED" | "ACTIVE" | "EXPIRED" | "INVALID"
 
@@ -151,11 +152,18 @@ export class AccountPool {
     }
   }
 
-  /** 单次健康检查：检测过期、标记异常 */
+  /** 单次健康检查：检测过期、清理僵尸 WS 锁、标记异常 */
   private async healthCheck(): Promise<void> {
     console.log("[AccountPool] Running health check...")
     for (const entry of this.accounts) {
       if (entry.status !== "ACTIVE") continue
+
+      // 清理僵尸 WS 锁（超时未释放的锁）
+      if (entry.lockedByWs && entry.lockedAt && Date.now() - entry.lockedAt > WS_LOCK_MAX_MS) {
+        console.warn(`[AccountPool] ${entry.email}: WS lock expired after ${Math.round((Date.now() - entry.lockedAt) / 1000)}s, force releasing`)
+        entry.lockedByWs = false
+        entry.lockedAt = null
+      }
 
       // 检查 Cookie 年龄（30天硬限制）
       if (entry.cookieSetAt && Date.now() - entry.cookieSetAt > SESSION_MAX_AGE_MS) {

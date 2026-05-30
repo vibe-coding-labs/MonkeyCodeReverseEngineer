@@ -4,7 +4,7 @@
 
 export interface TeamLoginRequest {
   username: string
-  password: string // MD5 哈希
+  password: string // 明文密码 (后端用 bcrypt 验证)
 }
 
 export interface TeamLoginResponse {
@@ -108,6 +108,7 @@ export interface OpenAIChatCompletionRequest {
   temperature?: number
   max_tokens?: number
   stream?: boolean
+  conversation_id?: string // 扩展字段：支持多轮对话
 }
 
 export interface OpenAIMessage {
@@ -159,4 +160,21 @@ export interface OpenAIModel {
 export interface OpenAIModelsResponse {
   object: "list"
   data: OpenAIModel[]
+}
+
+// ========== 多轮对话类型 ==========
+
+export interface Conversation {
+  id: string
+  taskId: string
+  modelId: string
+  messages: OpenAIMessage[]
+  lastUsedAt: number
+  createdAt: number
+}
+
+export interface ConversationManagerConfig {
+  maxConversations?: number
+  conversationTimeoutMs?: number
+  cleanupIntervalMs?: number
 }
