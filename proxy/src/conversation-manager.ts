@@ -5,6 +5,7 @@
 
 import WebSocket from "ws"
 import { AuthManager } from "./auth.js"
+import { wsHeaders } from "./browser-headers.js"
 import type {
   MonkeyCodeModel,
   OpenAIMessage,
@@ -137,9 +138,7 @@ export class ConversationManager {
       const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${conversation.taskId}&mode=attach`
 
       const ws = new WebSocket(wsUrl, {
-        headers: {
-          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
-        },
+        headers: wsHeaders("monkeycode-ai.com", `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`),
       })
 
       conversation.ws = ws

@@ -9,7 +9,7 @@
 // - 所有密码登录需要 captcha_token (go-cap 验证码系统)
 // - 自动化场景建议直接使用浏览器提取的 Session Cookie
 
-import { browserHeaders } from "./browser-headers.js"
+import { mkHeaders } from "./browser-headers.js"
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
 const SESSION_COOKIE_NAME = "monkeycode_ai_session"
 const TEAM_SESSION_COOKIE_NAME = "monkeycode_ai_team_session"
@@ -106,7 +106,7 @@ export class AuthManager {
 
     const response = await fetch(url, {
       method: "POST",
-      headers: browserHeaders({ "Content-Type": "application/json" }),
+      headers: mkHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
       redirect: "manual",
     })
@@ -145,7 +145,7 @@ export class AuthManager {
 
     const response = await fetch(url, {
       method: "POST",
-      headers: browserHeaders({ "Content-Type": "application/json" }),
+      headers: mkHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
       redirect: "manual",
     })
@@ -196,7 +196,7 @@ export class AuthManager {
       : `${MONKEYCODE_BASE_URL}/api/v1/users/status`
 
     const response = await fetch(url, {
-      headers: browserHeaders({
+      headers: mkHeaders({
         Cookie: `${this.getSessionCookieName()}=${this.getSessionCookieSync()}`,
       }),
     })
@@ -212,7 +212,7 @@ export class AuthManager {
 
     await fetch(logoutUrl, {
       method: "POST",
-      headers: browserHeaders({
+      headers: mkHeaders({
         Cookie: `${this.getSessionCookieName()}=${this.getSessionCookieSync()}`,
       }),
     })

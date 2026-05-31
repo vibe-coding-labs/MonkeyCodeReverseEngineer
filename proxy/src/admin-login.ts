@@ -1,6 +1,8 @@
 // MonkeyCode OAuth 登录流程 — 纯 HTTP 实现
 // 流程: SCaptcha → 百智云短信验证码 → 百智云手机号登录 → OAuth authorize → MonkeyCode 回调
 
+import { mkHeaders, bzHeaders, scHeaders, navHeaders } from "./browser-headers.js"
+
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
 const BAIZHI_URL = "https://baizhi.cloud"
 const SESSION_COOKIE_NAME = "monkeycode_ai_session"
@@ -14,11 +16,11 @@ export interface OAuthSession {
   clientId: string
   redirectUri: string
   scope: string
-  baizhiCookies: string // 百智云 cookie jar (手动管理)
+  baizhiCookies: string
   createdAt: number
 }
 
-/** 全局 OAuth 会话存储（单用户，简单实现） */
+/** 全局 OAuth 会话存储 */
 let currentOAuthSession: OAuthSession | null = null
 
 /** Step 1: 获取 OAuth 重定向 URL + 解析参数 */
@@ -30,6 +32,7 @@ export async function startOAuthLogin(): Promise<{
   scope: string
 }> {
   const resp = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/login`, {
+    headers: mkHeaders(),
     redirect: "manual",
   })
 
@@ -42,7 +45,6 @@ export async function startOAuthLogin(): Promise<{
     throw new Error("No Location header in redirect response")
   }
 
-  // 解析 OAuth 参数
   const url = new URL(location)
   const state = url.searchParams.get("state") || ""
   const clientId = url.searchParams.get("client_id") || ""
@@ -54,8 +56,6 @@ export async function startOAuthLogin(): Promise<{
 
 /** Step 2: 获取 SCaptcha 验证码 token */
 export async function getSCaptchaToken(): Promise<string> {
-  // SCaptcha CDN 的 SSL 证书可能不在标准 CA bundle 中
-  // 使用 NODE_TLS_REJECT_UNAUTHORIZED=0 跳过验证（仅影响此请求）
   const originalTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
@@ -63,11 +63,10 @@ export async function getSCaptchaToken(): Promise<string> {
   try {
     resp = await fetch(`${SCAPTCHA_API}/v1/api/challenge`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: scHeaders(),
       body: JSON.stringify({ business_id: SCAPTCHA_BUSINESS_ID }),
     })
   } finally {
-    // 恢复原始 TLS 设置
     if (originalTlsSetting === undefined) {
       delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
     } else {
@@ -96,7 +95,7 @@ export async function getSCaptchaToken(): Promise<string> {
 export async function sendSmsCode(phone: string, captchaToken: string): Promise<boolean> {
   const resp = await fetch(`${BAIZHI_URL}/api/v1/user/phone_code`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: bzHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       phone,
       kind: "login",
@@ -122,16 +121,10 @@ export async function initiateLogin(phone: string): Promise<{
   message: string
   state: string
 }> {
-  // Step 1: 获取 OAuth 参数
   const oauth = await startOAuthLogin()
-
-  // Step 2: 获取 SCaptcha token
   const captchaToken = await getSCaptchaToken()
-
-  // Step 3: 发送短信验证码
   await sendSmsCode(phone, captchaToken)
 
-  // 保存 OAuth 会话状态
   currentOAuthSession = {
     phone,
     state: oauth.state,
@@ -155,7 +148,7 @@ async function baizhiPhoneLogin(
 ): Promise<{ cookies: string; data: any }> {
   const resp = await fetch(`${BAIZHI_URL}/api/v1/user/login/phone`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: bzHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ phone, code }),
   })
 
@@ -168,11 +161,8 @@ async function baizhiPhoneLogin(
     throw new Error(`百智云 login error: code=${data.code}, msg=${data.message}`)
   }
 
-  // 提取 Set-Cookie
   const setCookie = resp.headers.get("Set-Cookie") || ""
-  // 提取所有 cookie 值
   const cookies: string[] = []
-  // Set-Cookie 可能有多行，用逗号分隔
   for (const part of setCookie.split(",")) {
     const match = part.trim().match(/^([^=]+)=([^;]+)/)
     if (match) {
@@ -201,7 +191,12 @@ async function baizhiOAuthAuthorize(
 
   const resp = await fetch(`${BAIZHI_URL}/api/v1/oauth/authorize?${params}`, {
     headers: {
+      ...bzHeaders(),
       Cookie: baizhiCookies,
+      Accept: navHeaders("baizhi.cloud").Accept, // 页面导航用 text/html
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Upgrade-Insecure-Requests": "1",
     },
     redirect: "manual",
   })
@@ -216,7 +211,6 @@ async function baizhiOAuthAuthorize(
     throw new Error("OAuth authorize: no Location header")
   }
 
-  // 解析 code
   const url = new URL(location)
   const code = url.searchParams.get("code") || ""
   if (!code) {
@@ -230,23 +224,27 @@ async function baizhiOAuthAuthorize(
 /** Step 6: MonkeyCode 回调 — 用 OAuth code 换取 session cookie */
 async function monkeycodeCallback(callbackUrl: string): Promise<string> {
   const resp = await fetch(callbackUrl, {
+    headers: navHeaders("monkeycode-ai.com", {
+      "Sec-Fetch-Site": "cross-site",
+      Referer: "https://baizhi.cloud/",
+    }),
     redirect: "manual",
   })
 
-  // 从 Set-Cookie 提取 session cookie
   const setCookie = resp.headers.get("Set-Cookie") || ""
   const match = setCookie.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`))
   if (match) {
     return match[1]
   }
 
-  // 尝试从 302 重定向后的 cookie 获取
   const location = resp.headers.get("Location") || ""
   if (location) {
-    // 跟随重定向获取 cookie
     const resp2 = await fetch(
       location.startsWith("http") ? location : `${MONKEYCODE_BASE_URL}${location}`,
-      { redirect: "manual" }
+      {
+        headers: mkHeaders(),
+        redirect: "manual",
+      }
     )
     const setCookie2 = resp2.headers.get("Set-Cookie") || ""
     const match2 = setCookie2.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`))
@@ -266,9 +264,9 @@ export async function verifySession(sessionCookie: string): Promise<{
   user?: any
 }> {
   const resp = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/status`, {
-    headers: {
+    headers: mkHeaders({
       Cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`,
-    },
+    }),
   })
 
   if (resp.ok) {
@@ -289,9 +287,9 @@ export async function discoverImageId(sessionCookie: string): Promise<{
   const resp = await fetch(
     `${MONKEYCODE_BASE_URL}/api/v1/users/tasks?page=1&size=5`,
     {
-      headers: {
+      headers: mkHeaders({
         Cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`,
-      },
+      }),
     }
   )
 
@@ -317,9 +315,9 @@ export async function discoverImageId(sessionCookie: string): Promise<{
 /** 获取可用模型列表 */
 export async function discoverModels(sessionCookie: string): Promise<any[]> {
   const resp = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/models`, {
-    headers: {
+    headers: mkHeaders({
       Cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`,
-    },
+    }),
   })
 
   if (!resp.ok) {
@@ -342,7 +340,6 @@ export async function completeLogin(smsCode: string): Promise<{
     throw new Error("No pending login session. Call POST /admin/login/send-code first.")
   }
 
-  // 检查会话是否过期（10 分钟）
   if (Date.now() - currentOAuthSession.createdAt > 10 * 60 * 1000) {
     currentOAuthSession = null
     throw new Error("Login session expired. Please request a new SMS code.")
@@ -350,11 +347,9 @@ export async function completeLogin(smsCode: string): Promise<{
 
   const session = currentOAuthSession
 
-  // Step 4: 百智云手机号登录
   const loginResult = await baizhiPhoneLogin(session.phone, smsCode)
   const baizhiCookies = loginResult.cookies
 
-  // Step 5: OAuth authorize
   const { callbackUrl } = await baizhiOAuthAuthorize(
     baizhiCookies,
     session.clientId,
@@ -363,13 +358,10 @@ export async function completeLogin(smsCode: string): Promise<{
     session.state
   )
 
-  // Step 6: MonkeyCode 回调获取 session cookie
   const sessionCookie = await monkeycodeCallback(callbackUrl)
 
-  // 清除 OAuth 会话
   currentOAuthSession = null
 
-  // 自动发现 image_id 和模型列表
   let imageResult: { imageId: string; imageName: string } | null = null
   let models: any[] = []
   let user: any = null

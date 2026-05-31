@@ -2,7 +2,7 @@
 
 import WebSocket from "ws"
 import { AuthManager } from "./auth.js"
-import { browserHeaders } from "./browser-headers.js"
+import { mkHeaders, wsHeaders } from "./browser-headers.js"
 import type {
   MonkeyCodeModel,
   TaskStreamMessage,
@@ -79,7 +79,7 @@ export class TaskRunner {
 
     const response = await fetch(url, {
       method: "POST",
-      headers: browserHeaders(headers),
+      headers: mkHeaders(headers),
       body: JSON.stringify(body),
     })
 
@@ -111,9 +111,7 @@ export class TaskRunner {
       const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${taskId}&mode=new`
 
       const ws = new WebSocket(wsUrl, {
-        headers: {
-          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
-        },
+        headers: wsHeaders("monkeycode-ai.com", `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`),
       })
 
       let resolved = false
@@ -354,12 +352,11 @@ export class TaskRunner {
       const wsUrl = `${wsBaseUrl}/api/v1/users/tasks/stream?id=${taskId}&mode=new`
 
       const ws = new WebSocket(wsUrl, {
-        headers: {
-          Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
-        },
+        headers: wsHeaders("monkeycode-ai.com", `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`),
       })
 
       let resolved = false
+      let accumulatedUsage = { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
       const usage = { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
 
       const cleanup = () => {
@@ -457,7 +454,7 @@ export class TaskRunner {
 
     await fetch(url, {
       method: "PUT",
-      headers: browserHeaders({
+      headers: mkHeaders({
         Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
         "Content-Type": "application/json",
       }),
