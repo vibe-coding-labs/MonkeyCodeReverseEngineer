@@ -9,6 +9,7 @@
 // - 所有密码登录需要 captcha_token (go-cap 验证码系统)
 // - 自动化场景建议直接使用浏览器提取的 Session Cookie
 
+import { browserHeaders } from "./browser-headers.js"
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
 const SESSION_COOKIE_NAME = "monkeycode_ai_session"
 const TEAM_SESSION_COOKIE_NAME = "monkeycode_ai_team_session"
@@ -105,7 +106,7 @@ export class AuthManager {
 
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: browserHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
       redirect: "manual",
     })
@@ -144,7 +145,7 @@ export class AuthManager {
 
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: browserHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
       redirect: "manual",
     })
@@ -190,24 +191,31 @@ export class AuthManager {
 
   /** 检查登录状态 */
   async checkStatus(): Promise<boolean> {
-    const headers = await this.authHeaders()
-    const statusUrl = this.loginMode === "team"
+    const url = this.loginMode === "team"
       ? `${MONKEYCODE_BASE_URL}/api/v1/teams/users/status`
       : `${MONKEYCODE_BASE_URL}/api/v1/users/status`
 
-    const response = await fetch(statusUrl, { headers })
+    const response = await fetch(url, {
+      headers: browserHeaders({
+        Cookie: `${this.getSessionCookieName()}=${this.getSessionCookieSync()}`,
+      }),
+    })
     return response.ok
   }
 
   /** 登出 */
   async logout(): Promise<void> {
     if (!this.sessionCookie) return
-    const headers = await this.authHeaders()
     const logoutUrl = this.loginMode === "team"
       ? `${MONKEYCODE_BASE_URL}/api/v1/teams/users/logout`
       : `${MONKEYCODE_BASE_URL}/api/v1/users/logout`
 
-    await fetch(logoutUrl, { method: "POST", headers })
+    await fetch(logoutUrl, {
+      method: "POST",
+      headers: browserHeaders({
+        Cookie: `${this.getSessionCookieName()}=${this.getSessionCookieSync()}`,
+      }),
+    })
     this.sessionCookie = ""
     this.lastAuthTime = 0
     console.log("[Auth] Logged out")

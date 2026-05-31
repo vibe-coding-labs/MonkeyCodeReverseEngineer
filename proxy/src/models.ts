@@ -1,6 +1,7 @@
 // MonkeyCode 模型管理 — 获取和缓存可用模型
 
 import { AuthManager } from "./auth.js"
+import { browserHeaders } from "./browser-headers.js"
 import type { MonkeyCodeModel, InterfaceType, OpenAIModel } from "./types.js"
 
 const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
@@ -21,10 +22,13 @@ export class ModelManager {
       return this.models
     }
 
-    const headers = await this.auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/models`
 
-    const response = await fetch(url, { headers })
+    const response = await fetch(url, {
+      headers: browserHeaders({
+        Cookie: `${this.auth.getSessionCookieName()}=${this.auth.getSessionCookieSync()}`,
+      }),
+    })
     if (!response.ok) {
       throw new Error(`Failed to fetch models (${response.status}): ${await response.text()}`)
     }

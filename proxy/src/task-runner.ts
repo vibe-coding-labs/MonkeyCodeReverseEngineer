@@ -2,6 +2,7 @@
 
 import WebSocket from "ws"
 import { AuthManager } from "./auth.js"
+import { browserHeaders } from "./browser-headers.js"
 import type {
   MonkeyCodeModel,
   TaskStreamMessage,
@@ -42,7 +43,7 @@ export class TaskRunner {
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks`
 
     const hostId = options?.hostId || DEFAULT_HOST_ID
-    const imageId = options?.imageId || DEFAULT_IMAGE_ID
+    const imageId = process.env.MONKEYCODE_IMAGE_ID || options?.imageId || DEFAULT_IMAGE_ID
 
     if (!imageId) {
       throw new Error(
@@ -78,7 +79,7 @@ export class TaskRunner {
 
     const response = await fetch(url, {
       method: "POST",
-      headers,
+      headers: browserHeaders(headers),
       body: JSON.stringify(body),
     })
 
@@ -88,6 +89,10 @@ export class TaskRunner {
     }
 
     const result = await response.json()
+    // 后端返回业务错误（如 code=10811 已有运行任务）时 HTTP 200 但 code != 0
+    if (result.code && result.code !== 0) {
+      throw new Error(`Failed to create task (code ${result.code}): ${result.message || JSON.stringify(result)}`)
+    }
     const data = result.data || result
     return data.id || data.task_id
   }
@@ -448,12 +453,14 @@ export class TaskRunner {
   /** 停止任务 */
   async stopTask(taskId: string, authOverride?: AuthManager): Promise<void> {
     const auth = authOverride || this.auth
-    const headers = await auth.authHeaders()
     const url = `${MONKEYCODE_BASE_URL}/api/v1/users/tasks/stop`
 
     await fetch(url, {
       method: "PUT",
-      headers,
+      headers: browserHeaders({
+        Cookie: `${auth.getSessionCookieName()}=${auth.getSessionCookieSync()}`,
+        "Content-Type": "application/json",
+      }),
       body: JSON.stringify({ id: taskId }),
     })
   }
