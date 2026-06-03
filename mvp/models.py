@@ -39,6 +39,8 @@ class MonkeyCodeModels:
         by_provider = {}
         for m in self.models:
             owner = m.get("owner", "unknown")
+            if isinstance(owner, dict):
+                owner = owner.get("type", owner.get("name", "unknown"))
             iface = m.get("interface_type", "unknown")
             provider = m.get("provider", "unknown")
             by_owner[owner] = by_owner.get(owner, 0) + 1
@@ -49,7 +51,7 @@ class MonkeyCodeModels:
         print(f"[Models] 按接口类型: {by_interface}")
         print(f"[Models] 按提供商: {by_provider}")
 
-        public_models = [m for m in self.models if m.get("owner") == "public"]
+        public_models = [m for m in self.models if self._owner_is_public(m.get("owner"))]
         if public_models:
             print(f"\n[Models] 公开模型详情:")
             for m in public_models:
@@ -81,8 +83,14 @@ class MonkeyCodeModels:
 
         return {"success": resp.status_code == 200, "status": resp.status_code, "body": resp.text[:500]}
 
+    @staticmethod
+    def _owner_is_public(owner):
+        if isinstance(owner, dict):
+            return owner.get("type") == "public" or owner.get("name") == "public"
+        return owner == "public"
+
     def get_public_models(self) -> list:
-        return [m for m in self.models if m.get("owner") == "public"]
+        return [m for m in self.models if self._owner_is_public(m.get("owner"))]
 
     def get_free_models(self) -> list:
         return [m for m in self.models if m.get("is_free")]

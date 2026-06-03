@@ -178,22 +178,24 @@ def test_user_info(t: TestResult, cookie: str):
     """测试 3: 获取用户信息"""
     print("\n--- 测试 3: 获取用户信息 ---")
 
-    resp, err = make_request("GET", "/api/v1/users/me", session_cookie=cookie)
+    # /users/me 已废弃，改用 /users/status
+    resp, err = make_request("GET", "/api/v1/users/status", session_cookie=cookie)
     if err:
-        t.fail("GET /users/me", err)
+        t.fail("GET /users/status", err)
         return
 
     data, parse_err = parse_json(resp)
     if parse_err:
-        t.fail("GET /users/me", parse_err)
+        t.fail("GET /users/status", parse_err)
         return
 
     if resp.status_code == 200 and data.get("code") == 0:
-        user = data.get("data", {})
-        t.ok("GET /users/me",
+        user_data = data.get("data", {})
+        user = user_data.get("user", user_data)
+        t.ok("GET /users/status",
              f"id={user.get('id', '?')[:8]}..., role={user.get('role', '?')}, email={user.get('email', '?')}")
     else:
-        t.fail("GET /users/me", f"HTTP {resp.status_code}, code={data.get('code')}, msg={data.get('message', data.get('msg'))}")
+        t.fail("GET /users/status", f"HTTP {resp.status_code}, code={data.get('code')}, msg={data.get('message', data.get('msg'))}")
 
 
 def test_user_models(t: TestResult, cookie: str):
@@ -233,18 +235,20 @@ def test_user_balance(t: TestResult, cookie: str):
     """测试 5: 获取用户余额"""
     print("\n--- 测试 5: 获取用户余额 ---")
 
-    resp, err = make_request("GET", "/api/v1/users/balance", session_cookie=cookie)
+    # /balance 已废弃，尝试从 /status 获取
+    resp, err = make_request("GET", "/api/v1/users/status", session_cookie=cookie)
     if err:
-        t.fail("GET /users/balance", err)
+        t.fail("GET /users/status (balance)", err)
         return
 
     data, parse_err = parse_json(resp)
     if parse_err:
-        t.fail("GET /users/balance", parse_err)
+        t.fail("GET /users/status (balance)", parse_err)
         return
 
     if resp.status_code == 200:
-        t.ok("GET /users/balance", f"data={json.dumps(data.get('data', data), ensure_ascii=False)[:100]}")
+        user_data = data.get("data", {})
+        t.ok("GET /users/status (balance)", f"可用字段: {list(user_data.keys())}")
     else:
         t.fail("GET /users/balance", f"HTTP {resp.status_code}, code={data.get('code')}")
 
