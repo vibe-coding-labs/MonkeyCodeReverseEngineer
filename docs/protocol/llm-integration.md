@@ -180,9 +180,29 @@ func HealthCheck(ctx context.Context, cfg Config) error {
 
 | AccessLevel | 说明 | 可用模型 |
 |-------------|------|---------|
-| `basic` | 基础订阅 | monkeycode-basic (qwen3.5-plus) + 免费模型 |
-| `pro` | 专业订阅 | monkeycode-pro (kimi-k2.6) + basic 模型 |
-| `ultra` | 高级订阅 | monkeycode-ultra (gpt-5.5) + 所有模型 |
+| `basic` | 基础订阅（默认注册用户） | monkeycode-basic (`qwen3.5-plus`) + 免费模型 (is_free=true) |
+| `pro` | 专业订阅 | monkeycode-pro (`kimi-k2.6`) + basic 模型 |
+| `ultra` | 高级订阅 | monkeycode-ultra (`gpt-5.5`) + 所有模型 |
+
+## SubscriptionResp 结构体（从 `backend/domain/user.go` 源码确认）
+
+```go
+type SubscriptionResp struct {
+    Plan      string     `json:"plan"`
+    Source    string     `json:"source,omitempty"`
+    ExpiresAt *time.Time `json:"expires_at,omitempty"`
+    AutoRenew bool       `json:"auto_renew"`
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `plan` | string | 订阅套餐名称（`basic`/`pro`/`ultra`） |
+| `source` | string | 订阅来源（`stripe`/`wechat`/`free`） |
+| `expires_at` | *time.Time | 到期时间，null=永久 |
+| `auto_renew` | bool | 是否自动续费 |
+
+> **注意:** `User` 实体不包含 `subscription_level` 或 `balance` 字段。订阅信息通过独立 API 获取。 |
 
 ## Public Model API Key 机制
 

@@ -12,8 +12,12 @@
 - 自动化场景推荐使用 oauth_login.py 或 oauth_http.py
 """
 import re
+import time
 import requests
 from config import BASE_URL, SESSION_COOKIE_NAME, USERNAME, PASSWORD, SESSION_COOKIE
+
+# Session TTL（不可刷新）
+SESSION_TTL_SECONDS = 30 * 24 * 60 * 60  # 30 天硬限制
 
 
 class MonkeyCodeAuth:
@@ -21,6 +25,65 @@ class MonkeyCodeAuth:
         self.session = requests.Session()
         self.session_cookie = SESSION_COOKIE
         self.user_info = None
+        self._cookie_set_time = 0  # Cookie 设置时间戳（用于 TTL 管理）
+
+    def _record_cookie_time(self):
+        """记录 Cookie 设置时间，用于 30 天 TTL 追踪"""
+        self._cookie_set_time = time.time()
+
+    def get_session_age_seconds(self) -> float:
+        """获取当前 Session 已存活秒数"""
+        if self._cookie_set_time == 0 or not self.session_cookie:
+            return 0.0
+        return time.time() - self._cookie_set_time
+
+    def get_session_remaining_seconds(self) -> float:
+        """获取 Session 剩余有效秒数（30天硬限制）"""
+        return max(0.0, SESSION_TTL_SECONDS - self.get_session_age_seconds())
+
+    def is_session_expired(self) -> bool:
+        """检查 Session 是否已过期（30天 TTL）"""
+        if not self.session_cookie:
+            return True
+        return self.get_session_age_seconds() >= SESSION_TTL_SECONDS
+
+    def get_session_ttl_info(self) -> dict:
+        """获取 Session TTL 信息"""
+        return {
+            "age_seconds": int(self.get_session_age_seconds()),
+            "age_days": int(self.get_session_age_seconds() / 86400),
+            "remaining_seconds": int(self.get_session_remaining_seconds()),
+            "remaining_days": int(self.get_session_remaining_seconds() / 86400),
+            "is_expired": self.is_session_expired(),
+            "max_ttl_days": 30,
+        }
+
+    def get_captcha_challenge(self) -> dict:
+        """获取密码登录所需的验证码 challenge
+
+        POST /api/v1/public/captcha/challenge
+
+        go-cap 验证码系统:
+        - 返回 {challenge: {c, s, d}, token, expires}
+        - c=验证码图片宽度, s=字符数, d=干扰等级
+        - captcha_token 需要在登录时提交
+
+        Returns:
+            {"token": "xxx", "challenge": {...}, "expires": timestamp} or error
+        """
+        url = f"{BASE_URL}/api/v1/public/captcha/challenge"
+        resp = requests.post(url, json={}, timeout=15)
+
+        if resp.status_code != 201:
+            return {"success": False, "status": resp.status_code, "body": resp.text[:200]}
+
+        data = resp.json()
+        return {
+            "success": True,
+            "token": data.get("token", ""),
+            "challenge": data.get("challenge", {}),
+            "expires": data.get("expires", 0),
+        }
 
     def login_user_password(self, email: str = None, password: str = None,
                             captcha_token: str = None) -> dict:
@@ -52,6 +115,7 @@ class MonkeyCodeAuth:
         cookie = self._extract_session_cookie(resp)
         if cookie:
             self.session_cookie = cookie
+            self._record_cookie_time()
             print(f"[Auth] Session Cookie 获取成功: {self.session_cookie[:20]}...")
         else:
             print(f"[Auth] 登录失败: 无法获取 Session Cookie")
@@ -98,6 +162,7 @@ class MonkeyCodeAuth:
         cookie = self._extract_session_cookie(resp, cookie_name=team_cookie_name)
         if cookie:
             self.session_cookie = cookie
+            self._record_cookie_time()
             print(f"[Auth] Team Session Cookie 获取成功: {self.session_cookie[:20]}...")
         else:
             print(f"[Auth] 登录失败: 无法获取 Team Session Cookie")
@@ -148,9 +213,14 @@ class MonkeyCodeAuth:
         print(f"[Auth] OAuth 参数: client_id={result['client_id']}, state={result['state'][:12]}...")
         return result
 
+    def get_oauth_redirect(self) -> dict:
+        """获取百智云 OAuth 重定向 URL（oauth_login 的别名）"""
+        return self.oauth_login()
+
     def set_session_cookie(self, cookie: str, cookie_name: str = None):
         """手动设置 Session Cookie（从浏览器提取）"""
         self.session_cookie = cookie
+        self._record_cookie_time()
         name = cookie_name or SESSION_COOKIE_NAME
         self.session.cookies.set(name, cookie)
         print(f"[Auth] Session Cookie 已设置 ({name}): {cookie[:20]}...")

@@ -44,8 +44,9 @@
 
 | 级别 | 说明 | 可用模型 |
 |------|------|---------|
-| `basic` | 基础订阅 | 免费模型 + basic 模型 |
-| `pro` | 专业订阅 | basic 模型 + pro 模型 |
+| `basic` | 基础订阅 | 免费模型 + basic 模型（如 monkeycode-basic/qwen3.5-plus） |
+| `pro` | 专业订阅 | basic 模型 + pro 模型（如 monkeycode-pro/kimi-k2.6） |
+| `ultra` | 高级订阅 | 所有模型（含 monkeycode-ultra/gpt-5.5） |
 
 ---
 
