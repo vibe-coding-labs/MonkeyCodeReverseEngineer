@@ -16,3 +16,18 @@ downloads/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Node
+node_modules/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
