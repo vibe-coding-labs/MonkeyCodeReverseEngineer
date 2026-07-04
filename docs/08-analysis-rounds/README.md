@@ -19,7 +19,38 @@
 
 ---
 
-## 关键结论汇总
+## 逆向分析时间线
+
+```mermaid
+gantt
+    title MonkeyCode 逆向工程 18 轮分析时间线
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+
+    section 初探阶段
+    第1轮：ASAR解包与架构初探     :a1, 2026-05-10, 2d
+    第2轮：密码登录与Session机制   :a2, after a1, 2d
+    第3轮：三层架构确认           :a3, after a2, 1d
+    第4轮：多轮对话设计          :a4, after a3, 2d
+    第5轮：对话实现              :a5, after a4, 2d
+    第6轮：VM生命周期分析        :a6, after a5, 3d
+
+    section 深入阶段
+    第7轮：ACP事件表确认         :b1, after a6, 2d
+    第8轮：测试验证              :b2, after b1, 2d
+    第9轮：OAuth流程逆向         :b3, after b2, 3d
+    第10轮：号池设计             :b4, after b3, 2d
+    第11轮：Codex集成验证        :b5, after b4, 2d
+    第12轮：最终提交             :b6, after b5, 1d
+
+    section 实现阶段
+    第13轮：TS代理初版           :c1, after b6, 3d
+    第14轮：Bug修复与增强        :c2, after c1, 2d
+    第15轮：TS代理完成           :c3, after c2, 3d
+    第16轮：验证码分析           :c4, after c3, 2d
+    第17轮：安全测试             :c5, after c4, 3d
+    第18轮：最终审查             :c6, after c5, 1d
+```
 
 - **第 1 轮** — ASAR 解包发现第一个 API 端点，启动整个逆向项目
 - **第 2 轮** — 密码登录 + Session Cookie 机制确认

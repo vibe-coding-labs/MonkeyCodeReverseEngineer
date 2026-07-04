@@ -17,18 +17,56 @@
 
 ---
 
-## 关键图表引用
+## 系统架构
 
-系统架构图、数据流图在本章各文件中。核心依赖关系：
+```mermaid
+graph TB
+    subgraph Client["客户端层 (4种)"]
+        Elec["Electron 桌面壳<br/>main.cjs - asar-content"]
+        Codex["Codex CLI (openai_responses)"]
+        SDK["OpenAI SDK (openai_chat)"]
+        Br["浏览器 Web 端"]
+    end
 
+    subgraph Proxy["反向代理层 · proxy/src/"]
+        S["server.ts ← 入口<br/>Express + CORS + SSE"]
+        A["auth.ts ← Session 管理<br/>Cookie 提取/刷新"]
+        AP["api-routes.ts ← OpenAI 路由<br/>/v1/chat/completions<br/>/v1/responses"]
+        M["models.ts ← 模型解析<br/>6层回退 resolveModel()"]
+        T["task-runner.ts ← 任务流<br/>WS → ACP → SSE"]
+        P["account-pool.ts ← 号池<br/>状态机+健康检查"]
+        C["conversation-manager.ts<br/>多轮对话 mode=attach"]
+    end
+
+    subgraph Backend["MonkeyCode 后端 Go"]
+        Login["POST /api/v1/users/login<br/>5种登录方式"]
+        Task["POST /api/v1/users/tasks<br/>创建 VM 任务"]
+        Model_GET["GET /api/v1/users/models<br/>按 access_level 过滤"]
+        WS_Task["WS /api/v1/users/tasks/stream<br/>ACP 事件"]
+        WS_Ctrl["WS /api/v1/users/tasks/control<br/>RPC 控制"]
+    end
+
+    subgraph VM["TaskFlow VM (Docker)"]
+        Agent["Agent<br/>Codex/Claude/OpenCode"]
+        LLMClient["LLM Client · client.go<br/>go-openai / anthropic-sdk-go"]
+        MCP["MCP 服务<br/>:65510"]
+    end
+
+    Client -->|HTTP/WS| Proxy
+    Proxy <-->|Session Cookie| Backend
+    Backend -->|创建容器| VM
+    Agent --> LLMClient
+    LLMClient -->|原生 API| LLM_Provider
 ```
-第三方1 [Electron Client] --> [Proxy Layer]
-第三方2 [Codex/OpenAI SDK] --> [Proxy Layer]
-Proxy Layer --> [MonkeyCode Backend]
-MonkeyCode Backend --> [TaskFlow Service]
-TaskFlow Service --> [Docker VM Cluster]
-VM Cluster --> [LLM Providers]
-```
+
+## 源码速查
+
+| 层次 | 源码位置 | 语言 | 行数 |
+|------|---------|------|------|
+| 客户端 | `analysis/asar-content/electron/main.cjs` | JavaScript | ~200 |
+| 代理层 | `proxy/src/` (10 文件) | TypeScript | ~3,031 |
+| 后端 | `chaitin/MonkeyCode/backend/` | Go | 闭源分析 |
+| VM | `chaitin/MonkeyCode/backend/pkg/taskflow/vm.go` | Go | ~500 |
 
 ---
 

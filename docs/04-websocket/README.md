@@ -20,6 +20,47 @@
 
 ---
 
+## WebSocket 通道架构
+
+```mermaid
+flowchart TB
+    subgraph Client["客户端"]
+        Proxy["Proxy 代理 · task-runner.ts"]
+        Conv["ConversationManager<br/>mode=attach"]
+    end
+
+    subgraph Backend["后端 Go"]
+        Stream["Stream WS<br/>/tasks/stream?id=T&mode=new<br/>ACP 事件流"]
+        Control["Control WS<br/>/tasks/control?id=T<br/>RPC 调用"]
+        TaskLive["TaskLive WS<br/>Backend ↔ TaskFlow<br/>内部通信"]
+    end
+
+    subgraph VM["TaskFlow VM"]
+        Term["Terminal WS<br/>/hosts/vms/{vm}/terminals<br/>交互式 TTY"]
+        Agent["Agent<br/>Codex/Claude"]
+    end
+
+    subgraph Events["ACP 事件类型"]
+        MSG["agent_message_chunk<br/>文本输出"]
+        THK["agent_thought_chunk<br/>推理过程"]
+        TOOL["tool_call / tool_call_update<br/>工具调用"]
+        USG["usage_update<br/>Token 用量"]
+        PLAN["plan<br/>执行计划"]
+    end
+
+    Proxy -->|建立连接| Stream
+    Stream -->|ping/10s| Proxy
+    Stream -->|推事件| Proxy
+    Proxy -->|user-input| Stream
+    Proxy -->|auto-approve| Stream
+    Backend -.->|TaskChunk| TaskLive
+    TaskLive -.->|任务控制| Agent
+    Proxy -.->|查询状态| Control
+    Control -.->|文件操作| Backend
+
+    Stream --> Events
+```
+
 ## 核心发现
 
 | 关键项 | 值 |

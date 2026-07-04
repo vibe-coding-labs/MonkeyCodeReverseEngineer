@@ -20,7 +20,49 @@
 
 ---
 
-## 核心发现
+## LLM 调用链
+
+```mermaid
+sequenceDiagram
+    participant Agent as VM Agent<br/>(Codex/Claude)
+    participant Client as client.go<br/>LLM Client
+    participant SDK as SDK<br/>go-openai/anthropic
+    participant Provider as LLM Provider<br/>(11 个)
+
+    Agent->>Client: generateText()<br/>@ai-sdk/openai-compatible
+    Client->>Client: 检测 InterfaceType
+    alt openai_chat
+        Client->>SDK: NewClient(apiKey, baseURL)
+        SDK->>Provider: POST /chat/completions
+    else openai_responses
+        Client->>Provider: POST /responses<br/>(原生 HTTP)
+    else anthropic
+        Client->>SDK: anthropic.NewClient()
+        SDK->>Provider: POST /v1/messages
+    end
+    Provider-->>Client: SSE 流式响应
+    Client-->>Agent: ChatResponse{Content, Usage}
+
+    Note over Agent,Provider: 模型配置中 interface_type 字段决定调用路径
+```
+
+## 三级访问控制
+
+```mermaid
+flowchart LR
+    subgraph Ultra["ultra 🔷 最高级"]
+        U1["monkeycode-ultra/gpt-5.5<br/>monkeycode-ultra/gpt-5.4<br/>monkeycode-ultra/deepseek-v4-pro"]
+    end
+    subgraph Pro["pro 🔶 中级"]
+        P1["monkeycode-pro/kimi-k2.6<br/>monkeycode-pro/deepseek-v4-pro<br/>monkeycode-pro/minimax-m3"]
+    end
+    subgraph Basic["basic 🔵 基础级<br/>（默认注册用户）"]
+        B1["monkeycode-basic/qwen3.5-plus<br/>monkeycode-basic/glm-4.7<br/>monkeycode-basic/minimax-m2.5"]
+    end
+
+    Basic -->|升级| Pro
+    Pro -->|升级| Ultra
+```
 
 | 关键项 | 值 |
 |--------|-----|

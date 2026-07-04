@@ -15,6 +15,68 @@
 
 本项目是对 [MonkeyCode AI](https://monkeycode-ai.com) 平台的全面逆向工程文档，覆盖认证协议、LLM 通信、WebSocket 流式协议、API 端点、VM 生命周期、代理实现等 10 个维度、40+ 分析维度。
 
+## 系统架构全景图
+
+```mermaid
+graph TB
+    subgraph Client["客户端层"]
+        Electron["🖥️ Electron 桌面壳<br/>analysis/asar-content/electron/"]
+        Codex["🤖 Codex CLI"]
+        OpenAI["🔌 OpenAI SDK"]
+    end
+
+    subgraph Proxy["代理层 · proxy/src/"]
+        Server["server.ts<br/>Express 入口"]
+        Auth["auth.ts<br/>Session 管理"]
+        Pool["account-pool.ts<br/>账号轮转"]
+        Model["models.ts<br/>模型解析"]
+        Runner["task-runner.ts<br/>WebSocket 流"]
+        Conv["conversation-manager.ts<br/>多轮对话"]
+    end
+
+    subgraph Remote["MonkeyCode 后端 · api.monkeycode-ai.com"]
+        Login["POST /api/v1/users/login<br/>OAuth/密码登录"]
+        Task["POST /api/v1/users/tasks<br/>任务创建"]
+        WS["WS /api/v1/users/tasks/stream<br/>ACP 事件流"]
+        ModelAPI["GET /api/v1/users/models<br/>模型列表"]
+    end
+
+    subgraph VM["TaskFlow VM · Docker 容器"]
+        Agent["Codex/Claude/OpenCode Agent"]
+        LLM["LLM Client · client.go<br/>OpenAI / Anthropic SDK"]
+    end
+
+    Client -->|HTTP/WSS| Proxy
+    Proxy -->|Session Cookie| Remote
+    Remote -->|创建 Docker 容器| VM
+    VM -->|ACP 事件 via WS| Proxy
+    Proxy -->|SSE 流| Client
+```
+
+## 认证流程全景图
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant P as 代理 server.ts
+    participant A as auth.ts
+    participant MC as monkeycode-ai.com
+    participant BZ as 百智云 OAuth
+
+    U->>P: OpenAI API 请求
+    P->>A: 获取 Session Cookie
+    alt 已有 Cookie
+        A-->>P: 返回有效 Cookie
+    else Cookie 过期
+        A->>MC: POST /api/v1/users/password-login
+        MC-->>A: Set-Cookie: monkeycode_ai_session
+        A-->>P: 返回新 Cookie
+    end
+    P->>MC: 请求 + Cookie
+    MC-->>P: 响应
+    P-->>U: OpenAI 格式响应
+```
+
 ## 快速导航
 
 | 章节 | 内容 | 文件数 |

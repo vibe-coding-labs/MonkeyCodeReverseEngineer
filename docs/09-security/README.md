@@ -15,7 +15,25 @@
 
 ---
 
-## 安全说明
+## 安全漏洞发现
+
+```mermaid
+flowchart LR
+    subgraph SCaptcha["SCaptcha 验证码漏洞"]
+        TLS["TLS 绕过<br/>NODE_TLS_REJECT_UNAUTHORIZED=0"]
+        REPLAY["授权码重放<br/>code 可重复使用"]
+        SMS["短信轰炸<br/>无频率限制"]
+    end
+
+    subgraph Proxy["代理安全风险"]
+        A1["管理端点未鉴权<br/>POST /admin/session"]
+        A2["Cookie 日志泄露<br/>console.log 打印 Token"]
+        A3["缺少 CSRF 防护<br/>JSON POST 无验证"]
+    end
+
+    SCaptcha -->|影响百智云 OAuth| Baizhi["百智云 OAuth 登录"]
+    Proxy -->|影响代理层| MC["MonkeyCode 反向代理"]
+```
 
 所有安全分析均在本仓库的安全框架内进行，仅供教育和防御性安全研究使用。详见项目根目录的 [安全说明](../README.md#-安全说明)。
 

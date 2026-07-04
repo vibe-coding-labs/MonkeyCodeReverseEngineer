@@ -18,7 +18,46 @@
 
 ---
 
-## 核心发现
+## VM 生命周期
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: 任务创建
+    pending --> creating: TaskFlow 调度
+    creating --> running: Docker 容器启动
+    running --> idle: 用户断开/无活动
+    idle --> running: 用户重新连接
+    idle --> stopping: 空闲超时 900s
+    stopping --> pending: 用户重启
+    stopping --> deleted: 超时 259200s(3天)
+    running --> stopping: 用户主动停止
+    deleted --> [*]
+
+    note right of pending
+        等待宿主机资源
+    end note
+    note right of running
+        Agent 在线工作
+        接收 ACP 事件
+    end note
+    note right of idle
+        容器保留但 Agent 休眠
+    end note
+```
+
+## Agent 容器启动链
+
+```mermaid
+flowchart TB
+    Start["用户创建任务<br/>POST /api/v1/users/tasks"] --> TaskFlow["TaskFlow 调度"]
+    TaskFlow --> Docker["docker run<br/>镜像: ghcr.io/chaitin/monkeycode-runner/devbox:bookworm<br/>资源: Cores=2, Memory=8GB"]
+    Docker --> NPM["安装 NPM 包<br/>@ai-sdk/openai-compatible<br/>@ai-sdk/anthropic<br/><coding-agent>"]
+    NPM --> Env["注入环境变量<br/>LLM_API_KEY LLM_BASE_URL<br/>LLM_MODEL MCAI_SERVER_BASE_URL<br/>TASK_ID MCP_SERVER_URL"]
+    Env --> Agent["Agent 启动<br/>Codex/Claude/OpenCode"]
+    Agent --> Wait["等待 user-input<br/>via TaskLive WS"]
+    Wait --> Work["Agent 开始工作<br/>生成 ACP 事件"]
+    Work --> Done["任务完成<br/>容器进入 idle"]
+```
 
 | 关键项 | 值 |
 |--------|-----|

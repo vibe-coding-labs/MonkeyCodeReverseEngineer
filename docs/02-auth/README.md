@@ -21,6 +21,40 @@
 
 ---
 
+## 认证流程全景
+
+```mermaid
+flowchart TB
+    subgraph Login["5种登录方式"]
+        Pwd["① 密码登录<br/>POST password-login"]
+        OAuth["② 百智云 OAuth<br/>SCaptcha + SMS + 回调"]
+        Git["③ Git 身份绑定<br/>第三方 OAuth token"]
+        Team["④ 团队登录<br/>POST teams/login"]
+        Imp["⑤ Admin Impersonate<br/>管理员模拟"]
+    end
+
+    subgraph Session["Session 管理"]
+        Key["Redis Lookup Key<br/>map[user_id]session_id"]
+        Hash["Redis Hash<br/>session_id → {user,expire}"]
+        Cookie["Cookie: monkeycode_ai_session<br/>30天 TTL"]
+    end
+
+    subgraph Middleware["中间件链"]
+        MA["AuthRequired<br/>检查 Cookie 存在"]
+        MC["CheckPermission<br/>验证角色权限"]
+        MT["TeamAuth<br/>团队上下文"]
+    end
+
+    Login -->|Set-Cookie| Cookie
+    Cookie -->|request| Middleware
+    Middleware -->|user_id| Key
+    Key -->|session_id| Hash
+
+    style Key fill:#4a6,color:#fff
+    style Hash fill:#4a6,color:#fff
+    style Cookie fill:#64a,color:#fff
+```
+
 ## 核心发现
 
 | 关键项 | 值 |

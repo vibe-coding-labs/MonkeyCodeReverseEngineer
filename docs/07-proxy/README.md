@@ -21,7 +21,80 @@
 
 ---
 
-## 核心发现
+## 代理请求处理流程
+
+```mermaid
+flowchart TB
+    subgraph Input["输入"]
+        Req["OpenAI 格式请求<br/>POST /v1/chat/completions"]
+    end
+
+    subgraph Router["路由分发 · api-routes.ts"]
+        R["Router"]
+        R_M["/v1/models → models.ts"]
+        R_C["/v1/chat/completions → chat 处理器"]
+        R_R["/v1/responses → responses 处理器"]
+    end
+
+    subgraph AuthN["认证 · auth.ts"]
+        A["AuthManager"]
+        A_Get["getSessionCookie()<br/>检查本地 Cookie"]
+        A_Exp{"过期？"}
+        A_Login["login()<br/>POST password-login / teams/login"]
+        A_OK["返回有效 Cookie"]
+    end
+
+    subgraph Pool["号池（可选）· account-pool.ts"]
+        P_Acq["acquireWs() / acquireHttp()"]
+        P_Chk{"可用账号？"}
+        P_Lock["WsLock<br/>独占一个账号"]
+        P_RR["Round-Robin<br/>HTTP 共享"]
+    end
+
+    subgraph Model["模型解析 · models.ts"]
+        M_Resolve["resolveModel()<br/>6层回退匹配"]
+        M_Cache{"缓存命中？"}
+        M_Fetch["fetchModels()<br/>GET /api/v1/users/models"]
+        M_OK["返回 MonkeyCodeModel"]
+    end
+
+    subgraph Task["任务执行 · task-runner.ts"]
+        T_Create["createTask()<br/>POST /api/v1/users/tasks"]
+        T_WS["WebSocket 连接<br/>WS /tasks/stream"]
+        T_Auto["auto-approve + user-input"]
+        T_ACP["接收 ACP 事件流"]
+    end
+
+    subgraph Output["输出"]
+        O_SSE["SSE 流 → 客户端<br/>agent_message_chunk → delta.content"]
+        O_Done["data: [DONE]"]
+    end
+
+    Req --> R
+    R --> R_C
+    R_C --> A
+    A --> A_Get
+    A_Get --> A_Exp
+    A_Exp -->|否| A_OK
+    A_Exp -->|是| A_Login
+    A_Login --> A_OK
+    A_OK --> P_Acq
+    P_Acq --> P_Chk
+    P_Chk -->|有| P_Lock
+    P_Chk -->|无| P_RR
+    P_Lock --> M_Resolve
+    P_RR --> M_Resolve
+    M_Resolve --> M_Cache
+    M_Cache -->|否| M_Fetch
+    M_Cache -->|是| M_OK
+    M_Fetch --> M_OK
+    M_OK --> T_Create
+    T_Create --> T_WS
+    T_WS --> T_Auto
+    T_Auto --> T_ACP
+    T_ACP --> O_SSE
+    O_SSE --> O_Done
+```
 
 | 关键项 | 值 |
 |--------|-----|

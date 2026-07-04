@@ -18,7 +18,44 @@
 
 ---
 
-## 核心发现
+## API 端点分类
+
+```mermaid
+flowchart LR
+    subgraph Auth["认证 · 8端点"]
+        A1["登录/登出/注册"]
+        A2["密码管理"]
+        A3["状态检查"]
+    end
+    subgraph Model["模型 · 6端点"]
+        M1["模型 CRUD"]
+        M2["健康检查"]
+        M3["模型列表"]
+    end
+    subgraph Task["任务 · 10+端点"]
+        T1["任务 CRUD"]
+        T2["WS Stream"]
+        T3["WS Control"]
+        T4["任务停止"]
+    end
+    subgraph Sub["订阅 · 4端点"]
+        S1["订阅查询"]
+        S2["订阅创建"]
+        S3["余额查询"]
+    end
+    subgraph Admin["管理 · 12端点"]
+        AD1["用户管理"]
+        AD2["系统配置"]
+        AD3["审计日志"]
+    end
+
+    Auth --> Task
+    Model --> Task
+    Task -->|ACP 事件| WS["WebSocket 通道"]
+    Sub -.->|限制| Task
+    Admin -.->|管控| Auth
+    Admin -.->|管控| Model
+```
 
 | 关键项 | 值 |
 |--------|-----|
