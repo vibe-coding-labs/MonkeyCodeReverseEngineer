@@ -9,7 +9,7 @@
 [![Chapters](https://img.shields.io/badge/总章节-10章-blue)](https://vibe-coding-labs.github.io/MonkeyCodeReverseEngineer/)
 [![Docs](https://img.shields.io/badge/文档数-119份-green)]()
 [![Status](https://img.shields.io/badge/状态-持续更新-yellow)]()
-[![License](https://img.shields.io/badge/许可证-MIT-orange)](LICENSE)
+[![License](https://img.shields.io/badge/许可证-MIT-orange)](https://github.com/vibe-coding-labs/MonkeyCodeReverseEngineer/blob/main/LICENSE)
 
 ---
 

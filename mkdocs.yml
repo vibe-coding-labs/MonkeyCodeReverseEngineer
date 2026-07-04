@@ -67,6 +67,9 @@ plugins:
 
 exclude_docs: |
   README.old.md
+  INDEX.md
+  security/baizhi-security-test-2026-06-12.md
+  superpowers/
 
 extra:
   social:
