@@ -40,3 +40,10 @@
 | 21 | 服务条款限制 | 代理使用违反 TOS | P2 | 需确认 |
 | 22 | 明文密码安全隐患 | 环境变量存储 | P2 | 安全加固 |
 | 23 | 无登录失败限流 | login() 无重试限制 | P2 | 安全加固 |
+| 24 | 浏览器指纹伪装策略 | browser-headers.ts 4 域名专用生成器 | 新维度 | 源码分析 | ✅ 已完成 → [报告](unknown-browser-fingerprint.md) |
+| 25 | Conversation Manager 清理与超时机制 | conversation-manager.ts 369 行 | P0 | 源码分析 |
+| 26 | Express 中间件链与 SSE 流控制 | server.ts 331 行 | P0 | 源码分析 |
+| 27 | 任务创建 resource 参数的实际影响 | task-runner.ts resource: {core, memory, life} | P0 | 源码分析 |
+| 28 | model_id 6 层解析回退的精确行为 | models.ts resolveModel() | P0 | 源码分析 |
+| 29 | admin-login.ts OAuth 6 步超时保护 | 10 分钟 session TTL + 状态清理 | P0 | 源码分析 |
+| 30 | types.ts 类型系统的设计演进 | 180 行完整类型定义 | P0 | 源码分析 |
