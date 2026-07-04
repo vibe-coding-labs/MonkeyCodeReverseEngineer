@@ -1,0 +1,78 @@
+/* MonkeyCode 反向工程文档站 — 自定义样式
+ * 目标：现代扁平风，干净、阅读体验好
+ */
+
+/* 顶部导航栏渐变 */
+.md-header {
+  background: linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #0ea5e9 100%) !important;
+}
+
+[data-md-color-scheme="default"] .md-header {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #06b6d4 100%) !important;
+}
+
+/* 导航 tabs 也跟随主色 */
+.md-tabs {
+  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%) !important;
+}
+
+[data-md-color-scheme="default"] .md-tabs {
+  background: linear-gradient(135deg, #14b8a6 0%, #22d3ee 100%) !important;
+}
+
+/* 代码块加圆角和阴影 */
+.md-typeset pre > code {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* 表格油滑 */
+.md-typeset table:not([class]) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* 首页大标题 */
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* 章节卡片样式用于首页 */
+.section-card {
+  display: inline-block;
+  padding: 1.2em 1.8em;
+  margin: 0.4em;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.section-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* 位置面包屑点缀 */
+.md-path {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* 流程图居中加阴影 */
+.mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}
+.mermaid svg {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+/* admonition 精美 */
+.md-typeset .admonition {
+  border-radius: 8px;
+  font-size: 0.85rem;
+}

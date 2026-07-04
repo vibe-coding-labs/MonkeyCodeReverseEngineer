@@ -7,6 +7,11 @@ last_verified: 2026-06-28
 
 # Session 存储机制（源码增强版）
 
+> **所属位置:** 🔌 第二篇·通讯协议 → 🔐 认证协议
+> **上一步:** [认证协议总览](README.md)
+> **下一步:** [验证码系统](02-captcha-system.md)
+（源码增强版）
+
 ## 1. Redis 双结构
 
 Session 数据存储在 Redis 中，使用 **Hash + Lookup Key** 双结构：

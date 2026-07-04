@@ -7,6 +7,30 @@ last_verified: 2026-06-28
 
 # 系统架构总览（源码增强版）
 
+> **所属位置:** 🚀 第一篇·基础入门 → 系统架构总览  
+> **上一步:** 首页 [index.md](../index.md)  
+> **下一步:** [核心数据流](02-data-flow.md) — 用户请求是怎么走完 5 条路径的
+
+---
+
+```mermaid
+graph LR
+    Home["🏠 首页"]
+    P1["🚀 第一篇·基础入门"]
+    Current["⭐ 你在这里: 系统架构总览"]
+    P1A["核心数据流"]
+    P1B["组件层级"]
+    P1C["错误处理"]
+
+    Home --> P1
+    P1 --> Current
+    Current --> P1A
+    Current --> P1B
+    Current --> P1C
+```
+
+---
+
 > **覆盖范围:** Electron 桌面壳 (main.cjs) + 代理层 TypeScript (10 模块, 3031 行) + 后端 Go
 > **核心发现:** 四层架构、4 种客户端访问模式、代理启动 7 步、Electron 壳薄至 138 行
 

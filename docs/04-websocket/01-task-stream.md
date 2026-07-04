@@ -5,7 +5,12 @@ confidence: high
 last_verified: 2026-06-28
 ---
 
-# Task Stream WebSocket（源码增强版）
+# Task Stream WebSocket
+
+> **所属位置:** 🔌 第二篇·通讯协议 → 🔗 WebSocket 实时通信
+> **上一步:** [WebSocket 总览](README.md)
+> **下一步:** [Task Control](02-task-control.md)
+（源码增强版）
 
 ## 端点
 

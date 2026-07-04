@@ -11,28 +11,39 @@ theme:
   language: zh
   icon:
     repo: fontawesome/brands/github
+    logo: material/book-open-variant
   logo: assets/images/logo.png
+  favicon: assets/images/favicon.png
   features:
     - navigation.instant
     - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.top
     - navigation.indexes
+    - navigation.footer
+    - navigation.path
+    - navigation.expand
+    - toc.follow
     - search.highlight
     - search.suggest
+    - search.share
     - content.code.annotate
     - content.code.copy
+    - content.tabs.link
   palette:
+    # 暗色模式 — 现代深蓝紫
     - scheme: slate
-      primary: indigo
-      accent: deep orange
+      primary: teal
+      accent: amber
       toggle:
         icon: material/weather-sunny
         name: 切换亮色模式
+    # 亮色模式 — 清爽白/青
     - scheme: default
-      primary: indigo
-      accent: deep orange
+      primary: cyan
+      accent: teal
       toggle:
         icon: material/weather-night
         name: 切换暗色模式
@@ -73,10 +84,15 @@ exclude_docs: |
   security/baizhi-security-test-2026-06-12.md
   superpowers/
 
+extra_css:
+  - stylesheets/extra.css
+
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/CC11001100
+    - icon: fontawesome/solid/book
+      link: https://vibe-coding-labs.github.io/MonkeyCodeReverseEngineer/
   generator: false
 
 copyright: Copyright &copy; 2026 CC11001100 — 仅供研究学习用途
@@ -85,106 +101,106 @@ nav:
   - 🏠 首页: index.md
 
   # ==================== 第一篇：基础入门 ====================
-  - 🚀 第一篇·基础入门:
+  - 🚀 第一篇·基础入门 — 系统架构全貌:
     - 01-architecture/README.md
-    - 系统架构总览: 01-architecture/01-system-overview.md
-    - 核心数据流: 01-architecture/02-data-flow.md
-    - 组件层级分析: 01-architecture/03-component-layer.md
-    - 错误处理模式: 01-architecture/04-error-handling-patterns.md
+    - 🏗️ 系统架构总览 — Electron壳→代理→后端→VM: 01-architecture/01-system-overview.md
+    - 🔄 核心数据流 — 用户请求走进代理到返回的5条路径: 01-architecture/02-data-flow.md
+    - 📦 组件层级分析 — 10个TypeScript模块的依赖关系: 01-architecture/03-component-layer.md
+    - 🚨 错误处理模式 — 重试、降级、熔断全解析: 01-architecture/04-error-handling-patterns.md
 
   # ==================== 第二篇：通讯协议 ====================
-  - 🔌 第二篇·通讯协议:
-    - 🔐 认证协议:
+  - 🔌 第二篇·通讯协议 — 认证·API·WebSocket:
+    - 🔐 认证协议 — 怎么登录?怎么鉴权?:
       - 02-auth/README.md
-      - Session 存储机制: 02-auth/01-session-storage.md
-      - 验证码系统: 02-auth/02-captcha-system.md
-      - 五种登录方式: 02-auth/03-login-methods.md
-      - 百智云 OAuth: 02-auth/04-oauth-baizhi-cloud.md
-      - 认证中间件: 02-auth/05-auth-middleware.md
-      - 密码管理: 02-auth/06-password-management.md
-      - 认证自动化: 02-auth/07-auth-automation.md
-      - 号池缺口分析: 02-auth/08-pool-gap-analysis.md
-    - 🌐 API 层:
+      - 🍪 Session 存储机制 — Redis双结构+30天TTL: 02-auth/01-session-storage.md
+      - 🧩 验证码系统 — CAP.js / go-cap 50x32网格: 02-auth/02-captcha-system.md
+      - 🔑 五种登录方式 — 密码/OAuth/Git/团队/模拟: 02-auth/03-login-methods.md
+      - 🌥️ 百智云 OAuth — 6步SSO完整流程: 02-auth/04-oauth-baizhi-cloud.md
+      - 🛡️ 认证中间件 — Go Gin中间件链+代理层AuthManager: 02-auth/05-auth-middleware.md
+      - 🔒 密码管理 — bcrypt+修改/重置: 02-auth/06-password-management.md
+      - 🤖 认证自动化 — 验证码绕过+Session保活: 02-auth/07-auth-automation.md
+      - 📊 号池缺口分析 — 多账号状态机+锁机制: 02-auth/08-pool-gap-analysis.md
+    - 🌐 REST API 层 — 100+端点的完整目录:
       - 05-api/README.md
-      - 端点目录: 05-api/01-endpoint-catalog.md
-      - 授权矩阵: 05-api/02-authorization-matrix.md
-      - Conversation API: 05-api/03-conversation-api.md
-      - 订阅与计费: 05-api/04-subscription-billing.md
-      - Admin 管理 API: 05-api/05-admin-management-api.md
-    - 🔗 WebSocket 实时通信:
+      - 📋 端点目录 — 按功能分类的100+端点全集: 05-api/01-endpoint-catalog.md
+      - 🛂 授权矩阵 — 角色/中间件/资源三层模型: 05-api/02-authorization-matrix.md
+      - 💬 Conversation API — 多轮会话设计: 05-api/03-conversation-api.md
+      - 💳 订阅与计费 — 3级订阅+余额查询: 05-api/04-subscription-billing.md
+      - ⚙️ Admin 管理 API — 12个管理员端点: 05-api/05-admin-management-api.md
+    - 🔗 WebSocket 实时通信 — ACP事件这样流:
       - 04-websocket/README.md
-      - Task Stream 通道: 04-websocket/01-task-stream.md
-      - Task Control 通道: 04-websocket/02-task-control.md
-      - Terminal TTY 通道: 04-websocket/03-terminal.md
-      - TaskLive 内部通信: 04-websocket/04-tasklive-internal.md
-      - 语音转文本: 04-websocket/05-speech-to-text.md
-      - ACP 事件参考: 04-websocket/06-acp-event-reference.md
-      - 会话生命周期: 04-websocket/07-conversation-lifecycle.md
+      - 📡 Task Stream — ACP事件主通道: 04-websocket/01-task-stream.md
+      - 🎮 Task Control — RPC远程控制: 04-websocket/02-task-control.md
+      - 🖥️ Terminal TTY — 交互式终端: 04-websocket/03-terminal.md
+      - 🔌 TaskLive 内部通信 — 后端↔TaskFlow: 04-websocket/04-tasklive-internal.md
+      - 🎤 语音转文本 — Doubao ASR: 04-websocket/05-speech-to-text.md
+      - 📖 ACP 事件参考 — 完整事件类型速查: 04-websocket/06-acp-event-reference.md
+      - 🔄 会话生命周期 — mode=attach多轮复用: 04-websocket/07-conversation-lifecycle.md
 
   # ==================== 第三篇：运行原理 ====================
-  - ⚙️ 第三篇·运行原理:
-    - 🤖 LLM 调用链路:
+  - ⚙️ 第三篇·运行原理 — LLM·VM·Agent:
+    - 🤖 LLM 调用链路 — 模型管理→接口类型→提供商:
       - 03-llm/README.md
-      - 模型管理 API: 03-llm/01-model-management-api.md
-      - 三种接口类型: 03-llm/02-interface-types.md
-      - 提供商配置: 03-llm/03-provider-list.md
-      - 模型定价与配额: 03-llm/04-model-pricing-quota.md
-      - LLM 集成协议: 03-llm/05-llm-integration.md
-      - Coding Agent 配置: 03-llm/06-coding-agent-config.md
-      - 私有模型创建: 03-llm/06-private-model-creation.md
-      - 模型发现 Pipeline: 03-llm/07-model-discovery-pipeline.md
-    - 🖥️ VM & TaskFlow 执行引擎:
+      - 📋 模型管理 API — CRUD+6层解析回退: 03-llm/01-model-management-api.md
+      - 🔀 三种接口类型 — openai_chat/openai_responses/anthropic: 03-llm/02-interface-types.md
+      - 🏢 提供商配置 — 11个LLM提供商详情: 03-llm/03-provider-list.md
+      - 💰 模型定价与配额 — 3级订阅+并发控制: 03-llm/04-model-pricing-quota.md
+      - 🔗 LLM 集成协议 — Client架构+SDK选择: 03-llm/05-llm-integration.md
+      - 🤖 Coding Agent 配置 — 4种Agent+NPM包: 03-llm/06-coding-agent-config.md
+      - 🏠 私有模型创建 — 自备API Key接入: 03-llm/06-private-model-creation.md
+      - 🔍 模型发现 Pipeline — 6层回退解析: 03-llm/07-model-discovery-pipeline.md
+    - 🖥️ VM & TaskFlow 执行引擎 — AI代码在哪跑:
       - 06-vm-taskflow/README.md
-      - TaskFlow 架构: 06-vm-taskflow/01-architecture.md
-      - VM 生命周期: 06-vm-taskflow/02-vm-lifecycle.md
-      - MCP 协议: 06-vm-taskflow/03-mcp-protocol.md
-      - Agent 内部架构: 06-vm-taskflow/04-agent-internals.md
-      - 资源管理: 06-vm-taskflow/05-resource-management.md
+      - 🏛️ TaskFlow 架构 — 后端↔Docker调度层: 06-vm-taskflow/01-architecture.md
+      - 🔄 VM 生命周期 — 7种状态+启动链: 06-vm-taskflow/02-vm-lifecycle.md
+      - 🔧 MCP 协议 — JSON-RPC 2.0工具: 06-vm-taskflow/03-mcp-protocol.md
+      - 🤖 Agent 内部架构 — Codex/Claude/OpenCode: 06-vm-taskflow/04-agent-internals.md
+      - 📊 资源管理 — CPU/Memory/生命周期: 06-vm-taskflow/05-resource-management.md
 
   # ==================== 第四篇：工程实现 ====================
-  - 🛠️ 第四篇·工程实现:
-    - ⚡ 反向代理:
+  - 🛠️ 第四篇·工程实现 — 反向代理代码:
+    - ⚡ 反向代理 — OpenAI兼容API实现:
       - 07-proxy/README.md
-      - 代理架构: 07-proxy/01-architecture.md
-      - 账号池: 07-proxy/02-account-pool.md
-      - 多轮对话: 07-proxy/03-multi-turn-conversation.md
-      - ACP→OpenAI 映射: 07-proxy/04-acp-to-openai-mapping.md
-      - OAuth 自动化(Playwright): 07-proxy/05-oauth-automation.md
-      - 浏览器指纹: 07-proxy/06-browser-fingerprinting.md
-      - OAuth HTTP 自动化: 07-proxy/06-oauth-automation-http.md
-      - 部署与中间件: 07-proxy/07-deployment-infrastructure.md
-      - 服务器启动: 07-proxy/08-server-startup.md
-      - 错误处理深度分析: 07-proxy/09-error-handling-deep.md
-      - OAuth HTTP 深度: 07-proxy/09-oauth-http-automation-deep.md
+      - 🏛️ 代理架构 — 10模块+5设计模式: 07-proxy/01-architecture.md
+      - 👥 账号池 — 状态机+健康检查+轮转: 07-proxy/02-account-pool.md
+      - 💬 多轮对话 — ConversationManager: 07-proxy/03-multi-turn-conversation.md
+      - 🔄 ACP→OpenAI 映射 — 双协议转换: 07-proxy/04-acp-to-openai-mapping.md
+      - 🤖 OAuth 自动化(Playwright) — 6步流程: 07-proxy/05-oauth-automation.md
+      - 🕵️ 浏览器指纹 — 4域名请求头生成: 07-proxy/06-browser-fingerprinting.md
+      - 🌐 OAuth HTTP 自动化 — 纯HTTP实现: 07-proxy/06-oauth-automation-http.md
+      - 🚀 部署与中间件 — CORS+SSE+Nginx: 07-proxy/07-deployment-infrastructure.md
+      - 🏁 服务器启动 — 7步启动流程: 07-proxy/08-server-startup.md
+      - 💥 错误处理深度 — 5种错误码+4级隔离: 07-proxy/09-error-handling-deep.md
+      - 🔍 OAuth HTTP 深度 — admin-login.ts源码: 07-proxy/09-oauth-http-automation-deep.md
 
   # ==================== 第五篇：研究记录 ====================
-  - 📖 第五篇·研究记录:
-    - 📊 逆向分析过程:
+  - 📖 第五篇·研究记录 — 逆向过程·安全分析:
+    - 📊 逆向分析过程 — 18轮全记录:
       - 08-analysis-rounds/README.md
-      - 汇总报告: 08-analysis-rounds/summary-report.md
-      - 第 1~6 轮（初探）: 08-analysis-rounds/rounds/round-01-to-06.md
-      - 第 7~12 轮（深入）: 08-analysis-rounds/rounds/round-07-to-12.md
-      - 第 13~18 轮（实现）: 08-analysis-rounds/rounds/round-13-to-18.md
-    - 🛡️ 安全分析:
+      - 📈 汇总报告 — 时间线+关键发现: 08-analysis-rounds/summary-report.md
+      - 🔬 第1~6轮（初探） — ASAR/登录/架构: 08-analysis-rounds/rounds/round-01-to-06.md
+      - 🔎 第7~12轮（深入） — ACP/OAuth/订阅: 08-analysis-rounds/rounds/round-07-to-12.md
+      - 🛠️ 第13~18轮（实现） — 代理/Bug修复: 08-analysis-rounds/rounds/round-13-to-18.md
+    - 🛡️ 安全分析 — 漏洞发现与加固:
       - 09-security/README.md
-      - 百智云安全报告: 09-security/baizhi-security-report.md
-      - 代理安全加固: 09-security/02-proxy-security-analysis.md
+      - ⚠️ 百智云安全报告 — SCaptcha漏洞: 09-security/baizhi-security-report.md
+      - 🔒 代理安全加固 — OWASP Top 10自评: 09-security/02-proxy-security-analysis.md
 
   # ==================== 第六篇：参考 ====================
-  - 📚 第六篇·参考与附录:
+  - 📚 第六篇·参考与附录 — 速查·术语·原始档案:
     - 📎 附录: 10-appendices/README.md
-    - ASAR 分析: 10-appendices/01-asar-analysis.md
-    - 错误码全集: 10-appendices/02-error-codes.md
-    - 环境变量全集: 10-appendices/03-environment-variables.md
-    - 术语表: 10-appendices/04-glossary.md
-    - 代码展品: 10-appendices/05-code-exhibits.md
-    - API 载荷: 10-appendices/06-api-payloads.md
-    - WebSocket 帧: 10-appendices/07-websocket-frames.md
-    - Python vs TS: 10-appendices/08-python-vs-ts.md
-    - MVP Python 分析: 10-appendices/09-mvp-python-analysis.md
-    - 📦 原始分析档案（35 份）:
+    - 💻 ASAR 分析: 10-appendices/01-asar-analysis.md
+    - ❌ 错误码全集: 10-appendices/02-error-codes.md
+    - 🔧 环境变量全集: 10-appendices/03-environment-variables.md
+    - 📖 术语表: 10-appendices/04-glossary.md
+    - 🧩 代码展品: 10-appendices/05-code-exhibits.md
+    - 📨 API 载荷: 10-appendices/06-api-payloads.md
+    - 📡 WebSocket 帧: 10-appendices/07-websocket-frames.md
+    - 🔄 Python vs TS: 10-appendices/08-python-vs-ts.md
+    - 🐍 MVP Python 分析: 10-appendices/09-mvp-python-analysis.md
+    - 📦 原始分析档案（35份）:
       - 档案说明: protocol/README.md
-      - 分析总结: protocol/analysis-summary.md
+      - 📄 分析总结: protocol/analysis-summary.md
       - 账号池协议: protocol/account-pool-protocol.md
       - API 端点: protocol/api-endpoints.md
       - 架构: protocol/architecture.md
@@ -201,5 +217,5 @@ nav:
       - 多轮对话: protocol/multi-turn-design.md
       - TaskFlow VM: protocol/taskflow-vm-analysis.md
       - WebSocket 协议: protocol/websocket-protocol.md
-      - 第 01~18 轮原始记录: protocol/
+      - 第01~18轮原始记录: protocol/
     - 📋 完成度检查: MASTER-CHECKLIST.md
