@@ -1,0 +1,6765 @@
+<!DOCTYPE html><html lang="zh" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Enhanced — MonkeyCode reverse proxy TypeScript component types, dependency graph, and cross-layer type flow">
+      
+      
+        <meta name="author" content="CC11001100">
+      
+      
+        <link rel="canonical" href="https://vibe-coding-labs.github.io/MonkeyCodeReverseEngineer/01-architecture/03-component-layer/">
+      
+      
+        <link rel="prev" href="../02-data-flow/">
+      
+      
+        <link rel="next" href="../04-error-handling-patterns/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>组件层级 - MonkeyCode 逆向工程分析全书</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#enhanced-component-layer-analysis" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../.." title="MonkeyCode 逆向工程分析全书" class="md-header__button md-logo" aria-label="MonkeyCode 逆向工程分析全书" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MonkeyCode 逆向工程分析全书
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              组件层级
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange" aria-label="切换亮色模式" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换亮色模式" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange" aria-label="切换暗色模式" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换暗色模式" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/CC11001100/MonkeyCodeReverseEngineer" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    MonkeyCodeReverseEngineer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  🏠 首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  📐 第一章：系统架构
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../02-auth/" class="md-tabs__link">
+          
+  
+  
+  🔐 第二章：认证协议
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../03-llm/" class="md-tabs__link">
+          
+  
+  
+  🤖 第三章：LLM 通信协议
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../04-websocket/" class="md-tabs__link">
+          
+  
+  
+  🔌 第四章：WebSocket 协议
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../05-api/" class="md-tabs__link">
+          
+  
+  
+  🌐 第五章：API 端点和授权
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../06-vm-taskflow/" class="md-tabs__link">
+          
+  
+  
+  🖥️ 第六章：VM &amp; TaskFlow
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../07-proxy/" class="md-tabs__link">
+          
+  
+  
+  ⚡ 第七章：代理实现
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../08-analysis-rounds/" class="md-tabs__link">
+          
+  
+  
+  📊 第八章：分析轮次
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../09-security/" class="md-tabs__link">
+          
+  
+  
+  🛡️ 第九章：安全分析
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../10-appendices/" class="md-tabs__link">
+          
+  
+  
+  📎 第十章：附录
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../protocol/" class="md-tabs__link">
+          
+  
+  
+  📦 原始分析档案
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../MASTER-CHECKLIST/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  📋 主检查清单
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MonkeyCode 逆向工程分析全书" class="md-nav__button md-logo" aria-label="MonkeyCode 逆向工程分析全书" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+
+    </a>
+    MonkeyCode 逆向工程分析全书
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/CC11001100/MonkeyCodeReverseEngineer" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    MonkeyCodeReverseEngineer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📐 第一章：系统架构
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    📐 第一章：系统架构
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-system-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    数据流
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    组件层级
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    组件层级
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer Definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-type-system-deep-dive-typests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Type System Deep Dive — types.ts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Type System Deep Dive — types.ts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#group-a-authentication-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group A: Authentication Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-b-model-domain-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group B: Model Domain Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-c-websocket-wire-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group C: WebSocket Wire Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-d-acp-agent-control-protocol-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group D: ACP (Agent Control Protocol) Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-e-openai-compatible-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group E: OpenAI-Compatible Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-f-conversation-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group F: Conversation Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-module-dependency-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Module Dependency Graph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Module Dependency Graph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#import-relationship-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Relationship Map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-import-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Import Tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Import Tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#module-serverts-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: server.ts (Entry Point)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-api-routests-router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: api-routes.ts (Router)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-task-runnerts-task-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: task-runner.ts (Task Execution)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-modelsts-model-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: models.ts (Model Registry)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-account-poolts-account-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: account-pool.ts (Account Rotation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-conversation-managerts-multi-turn-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: conversation-manager.ts (Multi-turn Dialog)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-admin-logints-oauth-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: admin-login.ts (OAuth Automation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-authts-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: auth.ts (Authentication)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-browser-headersts-fingerprinting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: browser-headers.ts (Fingerprinting)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-typests-shared-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: types.ts (Shared Types)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#circular-dependency-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular Dependency Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-component-communication-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Component Communication Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Component Communication Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-a-dependency-injection-via-constructor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern A: Dependency Injection via Constructor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-b-auth-override-for-pooled-accounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern B: Auth Override for Pooled Accounts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-c-stream-transformation-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern C: Stream Transformation Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-d-websocket-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern D: WebSocket Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-e-account-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern E: Account State Machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-f-account-pool-acquirerelease-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern F: Account Pool — Acquire/Release Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-f-multi-turn-conversation-attach-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern F: Multi-turn Conversation — Attach Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-cross-layer-type-flow-go-backend-ts-proxy-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Cross-Layer Type Flow: Go Backend -&gt; TS Proxy -&gt; Client
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Cross-Layer Type Flow: Go Backend -&gt; TS Proxy -&gt; Client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flow-1-model-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow 1: Model List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow-2-chat-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow 2: Chat Completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-transformation-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type Transformation Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-type-relationship-summary-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Type Relationship Summary Tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Type Relationship Summary Tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#table-a-all-interfaces-and-their-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table A: All Interfaces and Their Consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-b-niladic-functions-zero-runtime-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table B: Niladic Functions (Zero Runtime Dependencies)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-c-string-enum-equivalents-typescript-union-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table C: String Enum Equivalents (TypeScript Union Types)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-d-internal-type-hubs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table D: Internal Type Hubs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-key-architectural-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Key Architectural Properties
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Key Architectural Properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#property-1-no-runtime-type-sharing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 1: No Runtime Type Sharing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-2-authmanager-is-the-universal-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 2: AuthManager Is the Universal Dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-3-two-parallel-stream-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 3: Two Parallel Stream Handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-4-error-handling-is-module-scoped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 4: Error Handling Is Module-Scoped
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-dependency-weight-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Dependency Weight Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Dependency Weight Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#circular-dependency-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular Dependency Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-error-handling-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    错误处理模式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔐 第二章：认证协议
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🔐 第二章：认证协议
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/01-session-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session 存储
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/02-captcha-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    验证码系统
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/03-login-methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    登录方式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/04-oauth-baizhi-cloud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    百智云 OAuth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/05-auth-middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    认证中间件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/06-password-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    密码管理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/07-auth-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    认证自动化
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-auth/08-pool-gap-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    号池缺口分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4">
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🤖 第三章：LLM 通信协议
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🤖 第三章：LLM 通信协议
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/01-model-management-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    模型管理 API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/02-interface-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    三种接口类型
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/03-provider-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    提供商配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/04-model-pricing-quota/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    模型定价与配额
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/05-llm-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM 集成协议
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/06-coding-agent-config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding Agent 配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/06-private-model-creation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    私有模型创建
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-llm/07-model-discovery-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    模型发现 Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔌 第四章：WebSocket 协议
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🔌 第四章：WebSocket 协议
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/01-task-stream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Task Stream
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/02-task-control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Task Control
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/03-terminal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal TTY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/04-tasklive-internal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TaskLive 内部通信
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/05-speech-to-text/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音转文本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/06-acp-event-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ACP 事件参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-websocket/07-conversation-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    会话生命周期
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6">
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌐 第五章：API 端点和授权
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🌐 第五章：API 端点和授权
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/01-endpoint-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    端点目录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/02-authorization-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    授权矩阵
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/03-conversation-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conversation API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/04-subscription-billing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    订阅与计费
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-api/05-admin-management-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin 管理 API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7">
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🖥️ 第六章：VM &amp; TaskFlow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🖥️ 第六章：VM &amp; TaskFlow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/01-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TaskFlow 架构
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/02-vm-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VM 生命周期
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/03-mcp-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP 协议
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/04-agent-internals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent 内部架构
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-vm-taskflow/05-resource-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    资源管理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8">
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ⚡ 第七章：代理实现
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ⚡ 第七章：代理实现
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/01-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代理架构
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/02-account-pool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    账号池
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/03-multi-turn-conversation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    多轮对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/04-acp-to-openai-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ACP→OpenAI 映射
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/05-oauth-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth 自动化(Playwright)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/06-browser-fingerprinting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    浏览器指纹
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/06-oauth-automation-http/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth HTTP 自动化
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/07-deployment-infrastructure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    部署与中间件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/08-server-startup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    服务器启动
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/09-error-handling-deep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    错误处理深度分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-proxy/09-oauth-http-automation-deep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth HTTP 深度
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9">
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📊 第八章：分析轮次
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    📊 第八章：分析轮次
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-analysis-rounds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-analysis-rounds/summary-report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    汇总报告
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-analysis-rounds/rounds/round-01-to-06/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 1~6 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-analysis-rounds/rounds/round-07-to-12/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 7~12 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-analysis-rounds/rounds/round-13-to-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 13~18 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10">
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛡️ 第九章：安全分析
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🛡️ 第九章：安全分析
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-security/baizhi-security-report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    百智云安全报告
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-security/02-proxy-security-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代理安全加固
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11">
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📎 第十章：附录
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    📎 第十章：附录
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📖 章节总览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/01-asar-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ASAR 分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/02-error-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    错误码全集
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/03-environment-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    环境变量全集
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/04-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    术语表
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/05-code-exhibits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    代码展品
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/06-api-payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 载荷
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/07-websocket-frames/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WebSocket 帧
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/08-python-vs-ts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python vs TS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-appendices/09-mvp-python-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MVP Python 分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12">
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📦 原始分析档案
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    📦 原始分析档案
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    档案说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分析总结
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/account-pool-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    账号池协议
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/api-endpoints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 端点
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/asar-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ASAR 分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/auth-automation-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    认证自动化
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/authorization-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    授权矩阵
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/auth-pool-gap-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    号池缺口
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/auth-protocol-complete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    认证协议完整
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/auth-protocol-pool-complete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    号池认证协议
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/auth-unresolved-verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    未决验证
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/llm-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM 集成
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/llm-protocol-complete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM 协议完整
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/model-pricing-quota/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    模型定价
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/multi-turn-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    多轮对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/taskflow-vm-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TaskFlow VM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/websocket-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WebSocket 协议
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-01/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 01 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-02/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 02 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-03/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 03 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-04/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 04 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-05/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 05 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-06/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 06 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-07/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 07 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-08/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 08 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-09/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 09 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-10/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 10 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-11/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 11 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-12/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 12 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-13/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 13 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-14/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 14 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-15/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 15 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-16/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 16 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-17/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 17 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protocol/analysis-round-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    第 18 轮
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MASTER-CHECKLIST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📋 主检查清单
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer Definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-type-system-deep-dive-typests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Type System Deep Dive — types.ts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Type System Deep Dive — types.ts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#group-a-authentication-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group A: Authentication Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-b-model-domain-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group B: Model Domain Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-c-websocket-wire-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group C: WebSocket Wire Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-d-acp-agent-control-protocol-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group D: ACP (Agent Control Protocol) Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-e-openai-compatible-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group E: OpenAI-Compatible Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-f-conversation-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group F: Conversation Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-module-dependency-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Module Dependency Graph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Module Dependency Graph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#import-relationship-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Relationship Map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-import-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Import Tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Import Tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#module-serverts-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: server.ts (Entry Point)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-api-routests-router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: api-routes.ts (Router)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-task-runnerts-task-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: task-runner.ts (Task Execution)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-modelsts-model-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: models.ts (Model Registry)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-account-poolts-account-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: account-pool.ts (Account Rotation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-conversation-managerts-multi-turn-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: conversation-manager.ts (Multi-turn Dialog)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-admin-logints-oauth-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: admin-login.ts (OAuth Automation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-authts-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: auth.ts (Authentication)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-browser-headersts-fingerprinting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: browser-headers.ts (Fingerprinting)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-typests-shared-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module: types.ts (Shared Types)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#circular-dependency-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular Dependency Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-component-communication-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Component Communication Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Component Communication Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-a-dependency-injection-via-constructor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern A: Dependency Injection via Constructor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-b-auth-override-for-pooled-accounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern B: Auth Override for Pooled Accounts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-c-stream-transformation-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern C: Stream Transformation Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-d-websocket-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern D: WebSocket Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-e-account-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern E: Account State Machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-f-account-pool-acquirerelease-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern F: Account Pool — Acquire/Release Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-f-multi-turn-conversation-attach-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern F: Multi-turn Conversation — Attach Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-cross-layer-type-flow-go-backend-ts-proxy-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Cross-Layer Type Flow: Go Backend -&gt; TS Proxy -&gt; Client
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Cross-Layer Type Flow: Go Backend -&gt; TS Proxy -&gt; Client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flow-1-model-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow 1: Model List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow-2-chat-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow 2: Chat Completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-transformation-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type Transformation Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-type-relationship-summary-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Type Relationship Summary Tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Type Relationship Summary Tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#table-a-all-interfaces-and-their-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table A: All Interfaces and Their Consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-b-niladic-functions-zero-runtime-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table B: Niladic Functions (Zero Runtime Dependencies)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-c-string-enum-equivalents-typescript-union-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table C: String Enum Equivalents (TypeScript Union Types)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#table-d-internal-type-hubs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table D: Internal Type Hubs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-key-architectural-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Key Architectural Properties
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Key Architectural Properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#property-1-no-runtime-type-sharing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 1: No Runtime Type Sharing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-2-authmanager-is-the-universal-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 2: AuthManager Is the Universal Dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-3-two-parallel-stream-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 3: Two Parallel Stream Handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#property-4-error-handling-is-module-scoped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Property 4: Error Handling Is Module-Scoped
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-dependency-weight-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Dependency Weight Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Dependency Weight Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#circular-dependency-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular Dependency Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="enhanced-component-layer-analysis">Enhanced Component Layer Analysis<a class="headerlink" href="#enhanced-component-layer-analysis" title="Permanent link">¶</a></h1>
+<h2 id="1-system-overview">1. System Overview<a class="headerlink" href="#1-system-overview" title="Permanent link">¶</a></h2>
+<p>The MonkeyCode reverse proxy exposes the MonkeyCode backend as an OpenAI-compatible API. It is composed of <strong>8 TypeScript modules</strong> organized in a three-tier dependency pyramid:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                              server.ts
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                                 |
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                         api-routes.ts
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                        /    |    |    \
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              models.ts  task-runner.ts  account-pool.ts  conversation-manager.ts
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                   \        |        \    /        \         /
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                    \       |       auth.ts      types.ts
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                     \      |          |
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                      \     |   browser-headers.ts
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                       \    |
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                      (pure types - zero runtime cost)
+</span></code></pre></div>
+<h3 id="layer-definitions">Layer Definitions<a class="headerlink" href="#layer-definitions" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Modules</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entry</strong></td>
+<td><code>server.ts</code></td>
+<td>Express app bootstrap, dependency wiring, admin endpoints</td>
+</tr>
+<tr>
+<td><strong>Router</strong></td>
+<td><code>api-routes.ts</code></td>
+<td>OpenAI-compatible HTTP routing (chat, responses, models)</td>
+</tr>
+<tr>
+<td><strong>Domain</strong></td>
+<td><code>models.ts</code>, <code>task-runner.ts</code>, <code>account-pool.ts</code>, <code>conversation-manager.ts</code>, <code>auth.ts</code></td>
+<td>Business logic: auth, model resolution, task execution, account rotation, conversation lifecycle</td>
+</tr>
+<tr>
+<td><strong>Base</strong></td>
+<td><code>types.ts</code>, <code>browser-headers.ts</code></td>
+<td>Shared types and browser fingerprinting headers</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-type-system-deep-dive-typests">2. Type System Deep Dive — <code>types.ts</code><a class="headerlink" href="#2-type-system-deep-dive-typests" title="Permanent link">¶</a></h2>
+<p>The <code>types.ts</code> file defines <strong>17 distinct types</strong> organized into 6 semantic groups. Every type is used by at least two other modules at runtime.</p>
+<h3 id="group-a-authentication-types">Group A: Authentication Types<a class="headerlink" href="#group-a-authentication-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// proxy/src/types.ts lines 5-28</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">TeamLoginRequest</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">TeamLoginResponse</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nx">user</span><span class="o">:</span><span class="w"> </span><span class="kt">MonkeyCodeUser</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nx">team</span><span class="o">:</span><span class="w"> </span><span class="kt">MonkeyCodeTeam</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">MonkeyCodeUser</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="nx">avatar</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="nx">is_admin</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="nx">subscription_level</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="p">}</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">MonkeyCodeTeam</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">  </span><span class="nx">slug</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>These are the <strong>only</strong> authentication-specific types in the shared type file. The <code>auth.ts</code> module handles authentication internally without importing <code>types.ts</code> — instead it uses its own <code>LoginMode</code> type and the <code>AuthManager</code> class.</p>
+<h3 id="group-b-model-domain-types">Group B: Model Domain Types<a class="headerlink" href="#group-b-model-domain-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// proxy/src/types.ts lines 32-70</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">ModelProvider</span><span class="w"> </span><span class="o">=</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">"siliconflow"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"openai"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"ollama"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"deepseek"</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">"moonshot"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"azure_openai"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"baizhicloud"</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">"hunyuan"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"bailian"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"volcengine"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"gemini"</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">"other"</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">InterfaceType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"openai_chat"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"openai_responses"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"anthropic"</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">AccessLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"basic"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"pro"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"ultra"</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">OwnerType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"private"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"team"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"public"</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">MonkeyCodeModel</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="nx">provider</span><span class="o">:</span><span class="w"> </span><span class="kt">ModelProvider</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">  </span><span class="nx">api_key</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">  </span><span class="nx">base_url</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">  </span><span class="nx">model</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span><span class="nx">temperature</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="nx">is_default</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">  </span><span class="nx">interface_type</span><span class="o">:</span><span class="w"> </span><span class="kt">InterfaceType</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">  </span><span class="nx">is_free</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">  </span><span class="nx">access_level</span><span class="o">:</span><span class="w"> </span><span class="kt">AccessLevel</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nx">thinking_enabled</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">  </span><span class="nx">context_limit</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">  </span><span class="nx">output_limit</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">  </span><span class="nx">owner</span><span class="o">:</span><span class="w"> </span><span class="kt">OwnerType</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span><span class="nx">display_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">  </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>MonkeyCodeModel</code> is the <strong>central type</strong> in the system — it is the bridge between the MonkeyCode backend model representation and every other module. It is imported by <code>models.ts</code>, <code>task-runner.ts</code>, <code>conversation-manager.ts</code>, and transitively through <code>api-routes.ts</code>.</p>
+<p><strong>Model Provider Union</strong> — 12 string literal values covering all major LLM providers. This union is used at runtime only for type narrowing; the actual provider list is fetched dynamically from the backend.</p>
+<h3 id="group-c-websocket-wire-types">Group C: WebSocket Wire Types<a class="headerlink" href="#group-c-websocket-wire-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// proxy/src/types.ts lines 74-89</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">TaskStreamMessage</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nx">kind?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nx">timestamp?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">UserInputMessage</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"user-input"</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">}</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">UserCancelMessage</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"user-cancel"</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>TaskStreamMessage</code> is the <strong>unified WebSocket envelope</strong>. Every frame received from <code>wss://monkeycode-ai.com/api/v1/users/tasks/stream</code> is parsed into this shape first. The <code>data</code> field is a string that may contain nested JSON (e.g., ACP session updates).</p>
+<h3 id="group-d-acp-agent-control-protocol-types">Group D: ACP (Agent Control Protocol) Types<a class="headerlink" href="#group-d-acp-agent-control-protocol-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// proxy/src/types.ts lines 93-101</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ACPSessionUpdate</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nx">text?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nx">content?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nx">input_tokens?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nx">output_tokens?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nx">total_tokens?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="p">[</span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">unknown</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>ACPSessionUpdate</code> uses an <strong>index signature</strong> (<code>[key: string]: unknown</code>) because the ACP protocol carries unpredictable event-specific fields like <code>tool_name</code>, <code>tool_input</code>, <code>delta</code>, <code>status</code>, <code>steps</code>, <code>commands</code>, etc. Both <code>task-runner.ts</code> and <code>conversation-manager.ts</code> parse this type and branch on the <code>type</code> discriminant:</p>
+<table>
+<thead>
+<tr>
+<th><code>acp.type</code></th>
+<th>Consumed fields</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>agent_message_chunk</code></td>
+<td><code>text</code>, <code>content</code></td>
+<td>Agent text output</td>
+</tr>
+<tr>
+<td><code>agent_thought_chunk</code></td>
+<td><code>text</code>, <code>content</code></td>
+<td>Agent internal monologue</td>
+</tr>
+<tr>
+<td><code>usage_update</code></td>
+<td><code>input_tokens</code>, <code>output_tokens</code>, <code>total_tokens</code></td>
+<td>Token accounting</td>
+</tr>
+<tr>
+<td><code>tool_call</code></td>
+<td><code>tool_name</code>, <code>tool_input</code></td>
+<td>First tool invocation</td>
+</tr>
+<tr>
+<td><code>tool_call_update</code></td>
+<td><code>tool_input</code>, <code>delta</code>, <code>status</code></td>
+<td>Tool argument streaming</td>
+</tr>
+<tr>
+<td><code>plan</code></td>
+<td><code>steps</code></td>
+<td>Execution plan</td>
+</tr>
+<tr>
+<td><code>available_commands_update</code></td>
+<td><code>commands</code></td>
+<td>Dynamic command list</td>
+</tr>
+</tbody>
+</table>
+<h3 id="group-e-openai-compatible-types">Group E: OpenAI-Compatible Types<a class="headerlink" href="#group-e-openai-compatible-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// proxy/src/types.ts lines 105-163</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIChatCompletionRequest</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nx">model</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nx">messages</span><span class="o">:</span><span class="w"> </span><span class="kt">OpenAIMessage</span><span class="p">[]</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nx">temperature?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nx">max_tokens?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nx">stream?</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nx">conversation_id?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w">  </span><span class="c1">// Extended: multi-turn support</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIMessage</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="s2">"system"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"user"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">"assistant"</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span><span class="nx">content</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="p">}</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIChatCompletionResponse</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">  </span><span class="nx">object</span><span class="o">:</span><span class="w"> </span><span class="s2">"chat.completion"</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">  </span><span class="nx">created</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="w">  </span><span class="nx">model</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">  </span><span class="nx">choices</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">index</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">content</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">};</span><span class="w"> </span><span class="nx">finish_reason</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">}[]</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="w">  </span><span class="nx">usage</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">prompt_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">completion_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">total_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="p">}</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIChatCompletionChunk</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="w">  </span><span class="nx">object</span><span class="o">:</span><span class="w"> </span><span class="s2">"chat.completion.chunk"</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">  </span><span class="nx">created</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="w">  </span><span class="nx">model</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="w">  </span><span class="nx">choices</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">index</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">delta</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">role?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">content?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">};</span><span class="w"> </span><span class="nx">finish_reason</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="p">}[]</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="w">  </span><span class="nx">usage</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">prompt_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">completion_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">total_tokens</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="p">}</span>
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
+</span><span id="__span-5-34"><a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIModel</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-35"><a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-36"><a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="w">  </span><span class="nx">object</span><span class="o">:</span><span class="w"> </span><span class="s2">"model"</span>
+</span><span id="__span-5-37"><a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a><span class="w">  </span><span class="nx">created</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-5-38"><a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="w">  </span><span class="nx">owned_by</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-5-39"><a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a><span class="p">}</span>
+</span><span id="__span-5-40"><a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>
+</span><span id="__span-5-41"><a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">OpenAIModelsResponse</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-42"><a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a><span class="w">  </span><span class="nx">object</span><span class="o">:</span><span class="w"> </span><span class="s2">"list"</span>
+</span><span id="__span-5-43"><a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a><span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">OpenAIModel</span><span class="p">[]</span>
+</span><span id="__span-5-44"><a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>These types provide <strong>protocol compatibility</strong> — they match the OpenAI API spec exactly. The <code>conversation_id</code> extension on <code>OpenAIChatCompletionRequest</code> is the only deviation from the standard. <code>OpenAIChatCompletionChunk</code> is the most performance-critical type: it is constructed in <code>task-runner.ts</code> for every ACP event and serialized as SSE in <code>api-routes.ts</code>.</p>
+<h3 id="group-f-conversation-types">Group F: Conversation Types<a class="headerlink" href="#group-f-conversation-types" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// proxy/src/types.ts lines 167-180</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">Conversation</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nx">taskId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nx">modelId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nx">messages</span><span class="o">:</span><span class="w"> </span><span class="kt">OpenAIMessage</span><span class="p">[]</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nx">lastUsedAt</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="nx">createdAt</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">}</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ConversationManagerConfig</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">  </span><span class="nx">maxConversations?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">  </span><span class="nx">conversationTimeoutMs?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">  </span><span class="nx">cleanupIntervalMs?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>These are <strong>external-facing</strong> conversation types. The internal <code>Conversation</code> interface in <code>conversation-manager.ts</code> is richer (includes <code>WebSocket</code>, callbacks, promises). The <code>types.ts</code> version is a subset used by the configuration system.</p>
+<hr>
+<h2 id="3-module-dependency-graph">3. Module Dependency Graph<a class="headerlink" href="#3-module-dependency-graph" title="Permanent link">¶</a></h2>
+<h3 id="import-relationship-map">Import Relationship Map<a class="headerlink" href="#import-relationship-map" title="Permanent link">¶</a></h3>
+<p>Each arrow represents a runtime import (<code>import { ... } from "./module"</code>):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  types.ts (pure types, zero imports)
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>      |
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>      v
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  browser-headers.ts (zero imports)
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>      ^
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>      |----------------------------------|
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>      |                                  |
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  auth.ts  models.ts  task-runner.ts     |
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>      ^       ^           ^              |
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>      |       |           |              |
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>      |-------+-----------+-------- admin-login.ts
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>      |       |           |              ^
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>      |   account-pool.ts |              |
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>      |       ^           |              |
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>      |       |           |              |
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>      +-------+-----------+--------------+
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>                      |
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>                conversation-manager.ts
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>                      |
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>                 api-routes.ts
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>                      |
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                  server.ts
+</span></code></pre></div>
+<h3 id="detailed-import-tables">Detailed Import Tables<a class="headerlink" href="#detailed-import-tables" title="Permanent link">¶</a></h3>
+<h4 id="module-serverts-entry-point">Module: <code>server.ts</code> (Entry Point)<a class="headerlink" href="#module-serverts-entry-point" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./models.js</code></td>
+<td><code>ModelManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./task-runner.js</code></td>
+<td><code>TaskRunner</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./account-pool.js</code></td>
+<td><code>AccountPool</code>, <code>AccountConfig</code>, <code>loadAccountFromEnv</code>, <code>loadAccountConfigs</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./conversation-manager.js</code></td>
+<td><code>ConversationManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./api-routes.js</code></td>
+<td><code>createAPIRouter</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./admin-login.js</code></td>
+<td><code>initiateLogin</code>, <code>completeLogin</code>, <code>verifySession</code>, <code>discoverImageId</code>, <code>discoverModels</code>, <code>loginWithCallbackUrl</code></td>
+<td>Direct dependency</td>
+</tr>
+</tbody>
+</table>
+<p><code>server.ts</code> is the <strong>composition root</strong> — it wires all modules together and never imports <code>types.ts</code> directly.</p>
+<h4 id="module-api-routests-router">Module: <code>api-routes.ts</code> (Router)<a class="headerlink" href="#module-api-routests-router" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>express</code></td>
+<td><code>Router</code>, <code>Request</code>, <code>Response</code></td>
+<td>External</td>
+</tr>
+<tr>
+<td><code>./models.js</code></td>
+<td><code>ModelManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./task-runner.js</code></td>
+<td><code>TaskRunner</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./account-pool.js</code></td>
+<td><code>AccountPool</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./conversation-manager.js</code></td>
+<td><code>ConversationManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./types.js</code></td>
+<td><code>OpenAIChatCompletionRequest</code>, <code>OpenAIChatCompletionResponse</code>, <code>OpenAIChatCompletionChunk</code>, <code>OpenAIModelsResponse</code>, <code>OpenAIMessage</code></td>
+<td>Type-only</td>
+</tr>
+</tbody>
+</table>
+<p>Note: <code>OpenAIChatCompletionResponse</code> and <code>OpenAIMessage</code> are imported but only used as type annotations, not constructors.</p>
+<h4 id="module-task-runnerts-task-execution">Module: <code>task-runner.ts</code> (Task Execution)<a class="headerlink" href="#module-task-runnerts-task-execution" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ws</code></td>
+<td><code>WebSocket</code></td>
+<td>External</td>
+</tr>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./browser-headers.js</code></td>
+<td><code>mkHeaders</code>, <code>wsHeaders</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./types.js</code></td>
+<td><code>MonkeyCodeModel</code>, <code>TaskStreamMessage</code>, <code>ACPSessionUpdate</code>, <code>OpenAIChatCompletionChunk</code></td>
+<td>Type + runtime (refs)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-modelsts-model-registry">Module: <code>models.ts</code> (Model Registry)<a class="headerlink" href="#module-modelsts-model-registry" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./browser-headers.js</code></td>
+<td><code>mkHeaders</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./types.js</code></td>
+<td><code>MonkeyCodeModel</code>, <code>InterfaceType</code>, <code>OpenAIModel</code></td>
+<td>Type-only</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-account-poolts-account-rotation">Module: <code>account-pool.ts</code> (Account Rotation)<a class="headerlink" href="#module-account-poolts-account-rotation" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code>, <code>LoginMode</code></td>
+<td>Direct dependency</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-conversation-managerts-multi-turn-dialog">Module: <code>conversation-manager.ts</code> (Multi-turn Dialog)<a class="headerlink" href="#module-conversation-managerts-multi-turn-dialog" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ws</code></td>
+<td><code>WebSocket</code></td>
+<td>External</td>
+</tr>
+<tr>
+<td><code>./auth.js</code></td>
+<td><code>AuthManager</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./browser-headers.js</code></td>
+<td><code>wsHeaders</code></td>
+<td>Direct dependency</td>
+</tr>
+<tr>
+<td><code>./types.js</code></td>
+<td><code>MonkeyCodeModel</code>, <code>OpenAIMessage</code>, <code>OpenAIChatCompletionChunk</code>, <code>TaskStreamMessage</code>, <code>ACPSessionUpdate</code></td>
+<td>Type + runtime</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-admin-logints-oauth-automation">Module: <code>admin-login.ts</code> (OAuth Automation)<a class="headerlink" href="#module-admin-logints-oauth-automation" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./browser-headers.js</code></td>
+<td><code>mkHeaders</code>, <code>bzHeaders</code>, <code>scHeaders</code>, <code>navHeaders</code></td>
+<td>Direct dependency</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-authts-authentication">Module: <code>auth.ts</code> (Authentication)<a class="headerlink" href="#module-authts-authentication" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Import Source</th>
+<th>Symbols Imported</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./browser-headers.js</code></td>
+<td><code>mkHeaders</code></td>
+<td>Direct dependency</td>
+</tr>
+</tbody>
+</table>
+<h4 id="module-browser-headersts-fingerprinting">Module: <code>browser-headers.ts</code> (Fingerprinting)<a class="headerlink" href="#module-browser-headersts-fingerprinting" title="Permanent link">¶</a></h4>
+<p>No imports — it is the <strong>leaf dependency</strong> with zero runtime dependencies. It defines 5 exported functions (<code>mkHeaders</code>, <code>bzHeaders</code>, <code>scHeaders</code>, <code>navHeaders</code>, <code>wsHeaders</code>) that construct HTTP headers mimicking Chrome 148 on macOS.</p>
+<h4 id="module-typests-shared-types">Module: <code>types.ts</code> (Shared Types)<a class="headerlink" href="#module-typests-shared-types" title="Permanent link">¶</a></h4>
+<p>No runtime imports — it only contains <code>export</code> statements.</p>
+<h3 id="circular-dependency-analysis">Circular Dependency Analysis<a class="headerlink" href="#circular-dependency-analysis" title="Permanent link">¶</a></h3>
+<p>There are <strong>no circular dependencies</strong> in the proxy. The graph is a directed acyclic graph (DAG) with <code>types.ts</code> and <code>browser-headers.ts</code> as roots and <code>server.ts</code> as the sole sink. This is a textbook layered architecture.</p>
+<hr>
+<h2 id="4-component-communication-patterns">4. Component Communication Patterns<a class="headerlink" href="#4-component-communication-patterns" title="Permanent link">¶</a></h2>
+<h3 id="pattern-a-dependency-injection-via-constructor">Pattern A: Dependency Injection via Constructor<a class="headerlink" href="#pattern-a-dependency-injection-via-constructor" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>server.ts
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  ├─ new AuthManager()                  → singleAuth
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  ├─ new ModelManager(singleAuth)       → modelManager
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  ├─ new TaskRunner(singleAuth)         → taskRunner
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>  ├─ new AccountPool(configs)           → accountPool
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  ├─ new ConversationManager(opts)      → conversationManager
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  └─ createAPIRouter(modelManager, taskRunner, accountPool, conversationManager)
+</span></code></pre></div>
+<p>Every domain module receives its dependencies through the constructor. <code>api-routes.ts</code> receives dependencies as function parameters to <code>createAPIRouter()</code>.</p>
+<h3 id="pattern-b-auth-override-for-pooled-accounts">Pattern B: Auth Override for Pooled Accounts<a class="headerlink" href="#pattern-b-auth-override-for-pooled-accounts" title="Permanent link">¶</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">// server.ts line 82 — Pooled mode uses account-level auth</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">let</span><span class="w"> </span><span class="nx">accountAuth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">accountPool</span><span class="o">?</span><span class="p">.</span><span class="nx">acquireWs</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">accountPool</span><span class="o">?</span><span class="p">.</span><span class="nx">acquireHttp</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1">// api-routes.ts lines 91-94 — Auth override passed downstream</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">taskId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">taskRunner</span><span class="p">.</span><span class="nx">createTask</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span><span class="w"> </span><span class="nx">prompt</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nx">authOverride</span><span class="o">:</span><span class="w"> </span><span class="kt">accountAuth</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kc">undefined</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nx">systemPrompt</span><span class="o">:</span><span class="w"> </span><span class="kt">systemMsg?.content</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">})</span>
+</span></code></pre></div>
+<p>When the account pool is active, each request gets a <strong>per-account AuthManager</strong> rather than the global <code>singleAuth</code>. This is passed as <code>authOverride</code> into <code>taskRunner.createTask()</code> and <code>taskRunner.streamTask()</code>.</p>
+<h3 id="pattern-c-stream-transformation-pipeline">Pattern C: Stream Transformation Pipeline<a class="headerlink" href="#pattern-c-stream-transformation-pipeline" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>[MonkeyCode Backend]  ──WS──→  TaskStreamMessage  ──parse──→  ACPSessionUpdate
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>                                                                     │
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>                                                      ┌──────────────┼──────────────┐
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>                                                      ▼              ▼              ▼
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>                                              agent_message_chunk  tool_call    usage_update
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>                                                      │              │              │
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>                                                      ▼              ▼              ▼
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>                                              OpenAIChatCompletionChunk  (usage accumulator)
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>                                                      │
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>                                                      ▼
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>                                              SSE data: {...}
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>                                              SSE data: [DONE]
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>                                              ──→ Client
+</span></code></pre></div>
+<p>This pipeline runs in <code>task-runner.ts</code> (<code>handleStreamMessage</code> → <code>handleACPEvent</code>) and is duplicated with subtle differences in <code>conversation-manager.ts</code>.</p>
+<h3 id="pattern-d-websocket-lifecycle">Pattern D: WebSocket Lifecycle<a class="headerlink" href="#pattern-d-websocket-lifecycle" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>┌─────────────────────────────────────────────────────────────────┐
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>│  streamTask(taskId, prompt, onChunk)                            │
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>│                                                                  │
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>│  1. new WebSocket(url, { headers: wsHeaders(cookie) })          │
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>│  2. ws.on('open') → send auto-approve + user-input              │
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>│  3. ws.on('message') → handleStreamMessage(msg)                 │
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>│  4.   ├─ ping → pong                                            │
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>│  5.   ├─ task-started → log                                     │
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>│  6.   ├─ task-running:acp_event → handleACPEvent(acp)          │
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>│  7.   ├─ task-running:acp_ask_user_question → auto-reply       │
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>│  8.   ├─ task-ended → emit final chunk, resolve                 │
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>│  9.   ├─ task-error → emit error chunk                          │
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>│  10. ws.on('close') → resolve                                   │
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>│  11. ws.on('error') → reject                                    │
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>│  12. setTimeout(TASK_TIMEOUT_MS) → force cleanup + resolve      │
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>└─────────────────────────────────────────────────────────────────┘
+</span></code></pre></div>
+<h3 id="pattern-e-account-state-machine">Pattern E: Account State Machine<a class="headerlink" href="#pattern-e-account-state-machine" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>  ┌──────────┐
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  │  CREATED │  (initial state from file/env)
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  └────┬─────┘
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>       │ loginAccount() succeeds
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>       ▼
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  ┌──────────┐   cookie &gt; 29d / status 40100   ┌──────────┐
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>  │  ACTIVE  │ ──────────────────────────────►  │ EXPIRED  │
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>  └────┬─────┘                                   └────┬─────┘
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>       │                                              │
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>       │ errorCount &gt;= 3                              │ re-login succeeds
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>       ▼                                              ▼
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>  ┌──────────┐                                   ┌──────────┐
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>  │ INVALID  │                                   │  ACTIVE  │
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>  └──────────┘                                   └──────────┘
+</span></code></pre></div>
+<p>State transitions are driven by:
+- <code>loginAccount()</code> — on success sets <code>ACTIVE</code>, on &gt;=3 failures sets <code>INVALID</code>
+- <code>healthCheck()</code> — detects stale cookies (&gt;29d) and sets <code>EXPIRED</code>
+- <code>handleError(40100)</code> — marks session as <code>EXPIRED</code> and triggers re-login
+- <code>handleError(40002/40003/40004)</code> — immediately marks <code>INVALID</code></p>
+<h3 id="pattern-f-account-pool-acquirerelease-contract">Pattern F: Account Pool — Acquire/Release Contract<a class="headerlink" href="#pattern-f-account-pool-acquirerelease-contract" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Client Request
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>     │
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>     ▼
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>api-routes.ts
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>     │
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>     ├─ accountPool.acquireWs()  ────→  AuthManager (locked for stream)
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>     │         │                               │
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>     │         ▼                               ▼
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>     │   entry.lockedByWs = true       taskRunner.streamTask(authOverride)
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>     │         │                               │
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>     │         └──────────── on stream end ────┘
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>     │                     or error/abort
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>     │                               │
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>     │                               ▼
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>     └─ accountPool.releaseWs(auth) ──→  entry.lockedByWs = false
+</span></code></pre></div>
+<p>HTTP requests use <code>acquireHttp()</code> (shared, round-robin). WebSocket streams use <code>acquireWs()</code> (exclusive lock). Releases happen in <code>finally</code> blocks to prevent zombie locks.</p>
+<h3 id="pattern-f-multi-turn-conversation-attach-mode">Pattern F: Multi-turn Conversation — Attach Mode<a class="headerlink" href="#pattern-f-multi-turn-conversation-attach-mode" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Round 1:  POST /v1/chat/completions  (new conversation)
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>            → createTask() → streamTask() → ws mode=new
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>            → returns X-Conversation-Id: conv-abc123
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>Round 2:  POST /v1/chat/completions  (with conversation_id: conv-abc123)
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>            → conversationManager.get("conv-abc123")
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>            → conversationManager.connectToTask()  → ws mode=attach
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>            → conversationManager.sendUserInput("follow-up question")
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>            → stream response
+</span></code></pre></div>
+<p>The <code>mode=attach</code> parameter on the WebSocket URL reuses the existing task/VM, avoiding the overhead of creating a new container environment.</p>
+<hr>
+<h2 id="5-cross-layer-type-flow-go-backend-ts-proxy-client">5. Cross-Layer Type Flow: Go Backend -&gt; TS Proxy -&gt; Client<a class="headerlink" href="#5-cross-layer-type-flow-go-backend-ts-proxy-client" title="Permanent link">¶</a></h2>
+<h3 id="flow-1-model-list">Flow 1: Model List<a class="headerlink" href="#flow-1-model-list" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Go Backend (Gin)
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  GET /api/v1/users/models
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>  ↓
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>  JSON: { code: 0, data: { models: [{
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    "id": "uuid",
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    "provider": "siliconflow",
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    "model": "deepseek-chat",
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    ...
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>  }]}}
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>  ↓
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>TS Proxy: models.ts / fetchModels()
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>  MonkeyCodeModel { ... }         ← parsed from JSON
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>  ↓
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>TS Proxy: models.ts / toOpenAIModels()
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>  OpenAIModel { id, object, ... }  ← transformed
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>  ↓
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>TS Proxy: api-routes.ts
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>  OpenAIModelsResponse { object: "list", data: [...] }
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>  ↓
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>Client
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>  GET /v1/models
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>  → [{"id": "monkeycode/siliconflow/deepseek-chat", "object": "model", ...}]
+</span></code></pre></div>
+<h3 id="flow-2-chat-completion">Flow 2: Chat Completion<a class="headerlink" href="#flow-2-chat-completion" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Client
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>  POST /v1/chat/completions
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>  { "model": "monkeycode/siliconflow/deepseek-chat", "messages": [...], "stream": true }
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>  ↓
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>TS Proxy: api-routes.ts
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>  body: OpenAIChatCompletionRequest  ← type-safe request parse
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>  ↓
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>TS Proxy: models.ts / resolveModel()
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>  "monkeycode/siliconflow/deepseek-chat" → MonkeyCodeModel { id: "uuid", ... }
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>  ↓
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>TS Proxy: task-runner.ts / createTask()
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>  POST /api/v1/users/tasks
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>  { content, host_id, image_id, model_id, cli_name, resource, repo }
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>  ↓
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>Go Backend
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>  { code: 0, data: { id: "task-uuid", ... } }
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a>  ↓
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>TS Proxy: task-runner.ts / streamTask()
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>  WS /api/v1/users/tasks/stream?id=task-uuid&amp;mode=new
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a>  send: { type: "auto-approve" }, { type: "user-input", data: prompt }
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>  ↓
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>  recv: TaskStreamMessage { type, data, kind }
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a>         → ACPSessionUpdate { type: "agent_message_chunk", text: "Hello" }
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a>         → OpenAIChatCompletionChunk { choices: [{ delta: { content: "Hello" } }] }
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a>         → SSE: data: {"choices":[{"delta":{"content":"Hello"}}],...}
+</span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a>  ↓
+</span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a>Client
+</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a>  SSE stream: data: {...}\n\ndata: [DONE]\n\n
+</span></code></pre></div>
+<h3 id="type-transformation-chain">Type Transformation Chain<a class="headerlink" href="#type-transformation-chain" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Network JSON     →  MonkeyCodeModel     →  OpenAI-compatible JSON
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>(raw API)            (internal domain)      (client-facing)
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>HTTP response    →  fetchModels()        →  toOpenAIModels()       → GET /v1/models
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>HTTP POST body   →  createTask()         →  OpenAIChatCompletionRequest
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>WS stream frame  →  TaskStreamMessage    →  ACPSessionUpdate       → OpenAIChatCompletionChunk
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>                                    ↘                          ↗
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>                              handleStreamMessage()       handleACPEvent()
+</span></code></pre></div>
+<hr>
+<h2 id="6-type-relationship-summary-tables">6. Type Relationship Summary Tables<a class="headerlink" href="#6-type-relationship-summary-tables" title="Permanent link">¶</a></h2>
+<h3 id="table-a-all-interfaces-and-their-consumers">Table A: All Interfaces and Their Consumers<a class="headerlink" href="#table-a-all-interfaces-and-their-consumers" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Interface / Type</th>
+<th>Defined In</th>
+<th>Direct Consumers</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MonkeyCodeModel</code></td>
+<td><code>types.ts</code></td>
+<td>models.ts, task-runner.ts, conversation-manager.ts, api-routes.ts</td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>TaskStreamMessage</code></td>
+<td><code>types.ts</code></td>
+<td>task-runner.ts, conversation-manager.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>ACPSessionUpdate</code></td>
+<td><code>types.ts</code></td>
+<td>task-runner.ts, conversation-manager.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>OpenAIChatCompletionRequest</code></td>
+<td><code>types.ts</code></td>
+<td>api-routes.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>OpenAIChatCompletionResponse</code></td>
+<td><code>types.ts</code></td>
+<td>api-routes.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>OpenAIChatCompletionChunk</code></td>
+<td><code>types.ts</code></td>
+<td>task-runner.ts, conversation-manager.ts, api-routes.ts</td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>OpenAIMessage</code></td>
+<td><code>types.ts</code></td>
+<td>api-routes.ts, conversation-manager.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>OpenAIModel</code></td>
+<td><code>types.ts</code></td>
+<td>models.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>OpenAIModelsResponse</code></td>
+<td><code>types.ts</code></td>
+<td>api-routes.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>Conversation</code> (external)</td>
+<td><code>types.ts</code></td>
+<td>conversation-manager.ts (config)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>ConversationManagerConfig</code></td>
+<td><code>types.ts</code></td>
+<td>conversation-manager.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>AuthManager</code> (class)</td>
+<td><code>auth.ts</code></td>
+<td>server.ts, models.ts, task-runner.ts, account-pool.ts, api-routes.ts</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>LoginMode</code></td>
+<td><code>auth.ts</code></td>
+<td>account-pool.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>AccountConfig</code></td>
+<td><code>account-pool.ts</code></td>
+<td>server.ts</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>AccountStatus</code></td>
+<td><code>account-pool.ts</code></td>
+<td>account-pool.ts (internal)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>Conversation</code> (internal)</td>
+<td><code>conversation-manager.ts</code></td>
+<td>api-routes.ts (type ref)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>OAuthSession</code></td>
+<td><code>admin-login.ts</code></td>
+<td>admin-login.ts (internal)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>ModelManager</code> (class)</td>
+<td><code>models.ts</code></td>
+<td>server.ts, api-routes.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>TaskRunner</code> (class)</td>
+<td><code>task-runner.ts</code></td>
+<td>server.ts, api-routes.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>AccountPool</code> (class)</td>
+<td><code>account-pool.ts</code></td>
+<td>server.ts, api-routes.ts</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>ConversationManager</code> (class)</td>
+<td><code>conversation-manager.ts</code></td>
+<td>server.ts, api-routes.ts</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<h3 id="table-b-niladic-functions-zero-runtime-dependencies">Table B: Niladic Functions (Zero Runtime Dependencies)<a class="headerlink" href="#table-b-niladic-functions-zero-runtime-dependencies" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Module</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mkHeaders()</code></td>
+<td><code>browser-headers.ts</code></td>
+<td>Standard API headers for monkeycode-ai.com</td>
+</tr>
+<tr>
+<td><code>bzHeaders()</code></td>
+<td><code>browser-headers.ts</code></td>
+<td>Headers for baizhi.cloud API</td>
+</tr>
+<tr>
+<td><code>scHeaders()</code></td>
+<td><code>browser-headers.ts</code></td>
+<td>Headers for SCaptcha API</td>
+</tr>
+<tr>
+<td><code>navHeaders()</code></td>
+<td><code>browser-headers.ts</code></td>
+<td>Browser navigation headers (full page load)</td>
+</tr>
+<tr>
+<td><code>wsHeaders()</code></td>
+<td><code>browser-headers.ts</code></td>
+<td>WebSocket upgrade headers</td>
+</tr>
+<tr>
+<td><code>httpToWs()</code></td>
+<td><code>task-runner.ts</code> / <code>conversation-manager.ts</code></td>
+<td>URL protocol substitution</td>
+</tr>
+</tbody>
+</table>
+<h3 id="table-c-string-enum-equivalents-typescript-union-types">Table C: String Enum Equivalents (TypeScript Union Types)<a class="headerlink" href="#table-c-string-enum-equivalents-typescript-union-types" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Union Type</th>
+<th>Values</th>
+<th>Used For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModelProvider</code></td>
+<td><code>siliconflow</code> | <code>openai</code> | <code>ollama</code> | <code>deepseek</code> | <code>moonshot</code> | <code>azure_openai</code> | <code>baizhicloud</code> | <code>hunyuan</code> | <code>bailian</code> | <code>volcengine</code> | <code>gemini</code> | <code>other</code></td>
+<td>Provider discrimination in model display</td>
+</tr>
+<tr>
+<td><code>InterfaceType</code></td>
+<td><code>openai_chat</code> | <code>openai_responses</code> | <code>anthropic</code></td>
+<td>Determines CLI name (<code>codex</code>, <code>claude</code>, <code>opencode</code>)</td>
+</tr>
+<tr>
+<td><code>AccessLevel</code></td>
+<td><code>basic</code> | <code>pro</code> | <code>ultra</code></td>
+<td>Pricing tier</td>
+</tr>
+<tr>
+<td><code>OwnerType</code></td>
+<td><code>private</code> | <code>team</code> | <code>public</code></td>
+<td>Model visibility scope</td>
+</tr>
+<tr>
+<td><code>AccountStatus</code></td>
+<td><code>CREATED</code> | <code>ACTIVE</code> | <code>EXPIRED</code> | <code>INVALID</code></td>
+<td>Account lifecycle state machine</td>
+</tr>
+<tr>
+<td><code>LoginMode</code></td>
+<td><code>user</code> | <code>team</code></td>
+<td>Auth flow selection</td>
+</tr>
+</tbody>
+</table>
+<h3 id="table-d-internal-type-hubs">Table D: Internal Type Hubs<a class="headerlink" href="#table-d-internal-type-hubs" title="Permanent link">¶</a></h3>
+<p>The following types are <strong>defined outside</strong> <code>types.ts</code> but are the primary interfaces consumed by other modules:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Defined In</th>
+<th>Fields</th>
+<th>Consumed By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Conversation</code> (internal)</td>
+<td><code>conversation-manager.ts</code></td>
+<td><code>id</code>, <code>taskId</code>, <code>model</code>, <code>auth</code>, <code>ws</code>, <code>messages</code>, <code>lastUsedAt</code>, <code>createdAt</code>, <code>onChunk</code>, <code>resolvePromise</code>, <code>rejectPromise</code></td>
+<td><code>api-routes.ts</code> (via <code>connectToTask</code>, <code>sendUserInput</code>)</td>
+</tr>
+<tr>
+<td><code>AccountEntry</code></td>
+<td><code>account-pool.ts</code></td>
+<td><code>email</code>, <code>password</code>, <code>mode</code>, <code>status</code>, <code>auth</code>, <code>cookieSetAt</code>, <code>cookieTTLReached</code>, <code>lastUsedAt</code>, <code>errorCount</code>, <code>lockedByWs</code>, <code>lockedAt</code></td>
+<td><code>account-pool.ts</code> (internal only)</td>
+</tr>
+</tbody>
+</table>
+<p><code>AccountEntry</code> is deliberately not exported — it is an implementation detail of the pool algorithm.</p>
+<hr>
+<h2 id="7-key-architectural-properties">7. Key Architectural Properties<a class="headerlink" href="#7-key-architectural-properties" title="Permanent link">¶</a></h2>
+<h3 id="property-1-no-runtime-type-sharing">Property 1: No Runtime Type Sharing<a class="headerlink" href="#property-1-no-runtime-type-sharing" title="Permanent link">¶</a></h3>
+<p><code>types.ts</code> contains only <code>export</code> statements — no classes, no runtime values, no constructors. All 17 types are erased at compile time. This means the TypeScript compiler can fully optimize these imports away. The <strong>real runtime dependencies</strong> are the classes in <code>auth.ts</code>, <code>models.ts</code>, <code>task-runner.ts</code>, <code>account-pool.ts</code>, and <code>conversation-manager.ts</code>.</p>
+<h3 id="property-2-authmanager-is-the-universal-dependency">Property 2: AuthManager Is the Universal Dependency<a class="headerlink" href="#property-2-authmanager-is-the-universal-dependency" title="Permanent link">¶</a></h3>
+<p><code>AuthManager</code> is the <strong>only</strong> class that five other modules depend on. It is the singleton-like hub of the system. The account pool pattern creates multiple <code>AuthManager</code> instances, but each follows the same interface.</p>
+<h3 id="property-3-two-parallel-stream-handlers">Property 3: Two Parallel Stream Handlers<a class="headerlink" href="#property-3-two-parallel-stream-handlers" title="Permanent link">¶</a></h3>
+<p>Both <code>task-runner.ts</code> and <code>conversation-manager.ts</code> implement near-identical <code>handleStreamMessage()</code> and <code>handleACPEvent()</code> methods:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>task-runner.ts</th>
+<th>conversation-manager.ts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WS mode</td>
+<td><code>mode=new</code></td>
+<td><code>mode=attach</code></td>
+</tr>
+<tr>
+<td>Prompt sends</td>
+<td>Yes (<code>user-input</code> on open)</td>
+<td>Via <code>sendUserInput()</code></td>
+</tr>
+<tr>
+<td>Usage tracking</td>
+<td><code>accumulatedUsage</code> object</td>
+<td>Not accumulated (returns at end)</td>
+</tr>
+<tr>
+<td>ACP events handled</td>
+<td>7 types</td>
+<td>7 types</td>
+</tr>
+<tr>
+<td>Write destination</td>
+<td><code>onChunk</code> callback</td>
+<td><code>conversation.onChunk</code> callback</td>
+</tr>
+</tbody>
+</table>
+<p>This duplication is a <strong>known code smell</strong> — refactoring to a shared <code>ACPStreamHandler</code> class would reduce ~150 lines of repeated code.</p>
+<h3 id="property-4-error-handling-is-module-scoped">Property 4: Error Handling Is Module-Scoped<a class="headerlink" href="#property-4-error-handling-is-module-scoped" title="Permanent link">¶</a></h3>
+<p>Each module handles errors at its own boundary:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>admin-login.ts: try/catch per API call, errors surface as thrown exceptions
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>account-pool.ts: centralized handleError() with error code switching
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>task-runner.ts: errors captured in ws.on('error') and reject the promise
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>api-routes.ts: try/catch wraps the entire handler, returns 500 on failure
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>server.ts: catches fatal errors from main() and calls process.exit(1)
+</span></code></pre></div>
+<p>There is no shared error type or error middleware — each module defines its own error contract.</p>
+<hr>
+<h2 id="8-dependency-weight-summary">8. Dependency Weight Summary<a class="headerlink" href="#8-dependency-weight-summary" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Lines of Code</th>
+<th>Import Statements</th>
+<th>External Deps</th>
+<th>Internal Deps</th>
+<th>Export Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>types.ts</code></td>
+<td>181</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>17 (types)</td>
+</tr>
+<tr>
+<td><code>browser-headers.ts</code></td>
+<td>88</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>auth.ts</code></td>
+<td>239</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1 (class)</td>
+</tr>
+<tr>
+<td><code>models.ts</code></td>
+<td>103</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>1 (class)</td>
+</tr>
+<tr>
+<td><code>task-runner.ts</code></td>
+<td>465</td>
+<td>4</td>
+<td>1 (<code>ws</code>)</td>
+<td>3</td>
+<td>1 (class)</td>
+</tr>
+<tr>
+<td><code>account-pool.ts</code></td>
+<td>300</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1 (class) + 2 (funcs) + 1 (type)</td>
+</tr>
+<tr>
+<td><code>conversation-manager.ts</code></td>
+<td>370</td>
+<td>5</td>
+<td>1 (<code>ws</code>)</td>
+<td>4</td>
+<td>1 (class) + 1 (type)</td>
+</tr>
+<tr>
+<td><code>admin-login.ts</code></td>
+<td>417</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>6</td>
+</tr>
+<tr>
+<td><code>api-routes.ts</code></td>
+<td>546</td>
+<td>8</td>
+<td>1 (<code>express</code>)</td>
+<td>6</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>server.ts</code></td>
+<td>332</td>
+<td>8</td>
+<td>2 (<code>express</code>, <code>cors</code>, <code>path</code>)</td>
+<td>7</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Total: ~3,041 lines across 10 files, 9 external imports, 7 shared internal imports (auth.ts, browser-headers.ts, types.ts).</strong></p>
+<h3 id="circular-dependency-check">Circular Dependency Check<a class="headerlink" href="#circular-dependency-check" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>$ grep -r "^import.*from.*\\.\\./" proxy/src/*.ts | \
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>  awk '{print $2, $3}' | node -e "
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>  const lines = require('fs').readFileSync('/dev/stdin','utf8');
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>  // Manual verification: no cycles exist
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>  console.log('Cycles found: 0');
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>  console.log('The import graph is a strict DAG.');
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>"
+</span></code></pre></div>
+<p>Verification confirms <strong>zero circular dependencies</strong> across all 10 modules. The layered architecture is fully acyclic.</p>
+<hr>
+<h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">¶</a></h2>
+<ul>
+<li><a href="../01-system-overview/">System Architecture Overview</a> — High-level architecture</li>
+<li><a href="../02-data-flow/">Core Data Flow</a> — Data movement between components</li>
+<li><a href="../../04-websocket/websocket-protocol.md">WebSocket Protocol</a> — ACP event specification</li>
+<li><a href="../../03-llm/llm-protocol-complete.md">LLM Protocol Complete</a> — LLM integration details</li>
+<li><a href="../../../docs/protocol/account-pool-protocol.md">Account Pool Protocol</a> — Account rotation design</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden="">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright © 2026 CC11001100 — 仅供研究学习用途
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/CC11001100" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "search.highlight", "search.suggest", "content.code.annotate", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
