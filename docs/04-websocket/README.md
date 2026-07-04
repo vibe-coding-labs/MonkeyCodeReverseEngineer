@@ -1,81 +1,37 @@
-# 第四章：WebSocket 协议
+# WebSocket 实时通信
 
-> **章节状态:** ✅ 所有文件已创建
-> **最后更新:** 2026-06-25
-> **覆盖范围:** 3 个 WebSocket 通道（Stream/Control/Terminal）、内部 TaskLive 通信、语音识别 SSE、ACP 事件参考
-
----
-
-## 文件清单
-
-| # | 文件 | 内容 | 完成度 |
-|---|------|------|--------|
-| 1 | [01-task-stream.md](01-task-stream.md) | Task Stream WebSocket（ACP 事件流、用户输入、重连机制） | ✅ 已完成 |
-| 2 | [02-task-control.md](02-task-control.md) | Task Control WebSocket（RPC 调用：文件操作、重启、切换模型） | ✅ 已完成 |
-| 3 | [03-terminal.md](03-terminal.md) | Terminal WebSocket（交互式终端、二进制帧、Keepalive） | 🟡 待扩充 |
-| 4 | [04-tasklive-internal.md](04-tasklive-internal.md) | TaskLive 内部 WebSocket（Backend ↔ TaskFlow 通信） | ✅ 已完成 |
-| 5 | [05-speech-to-text.md](05-speech-to-text.md) | 语音识别 SSE 流式输出 | 🟡 待扩充（需线上测试）|
-| 6 | [06-acp-event-reference.md](06-acp-event-reference.md) | ACP 事件类型完整参考（格式、字段、示例） | ✅ 已完成 |
-| 7 | **[07-conversation-lifecycle.md](07-conversation-lifecycle.md)** | **新增** Conversation Manager 生命周期（mode=attach 协议） | ✅ **新维度** |
-
----
-
-## WebSocket 通道架构
+> **所属位置:** 第二篇·通讯协议 — WebSocket 通道协议
+> **前置要求:** 先读认证协议和 API 层
+> **阅读目标:** 掌握 ACP 事件如何从 VM 流到前端
 
 ```mermaid
 flowchart TB
-    subgraph Client["客户端"]
-        Proxy["Proxy 代理 · task-runner.ts"]
-        Conv["ConversationManager<br/>mode=attach"]
-    end
+    Client["Proxy 代理层"]
+    Stream["WS /tasks/stream<br/>ACP 事件流"]
+    Control["WS /tasks/control<br/>RPC 控制"]
+    TaskLive["TaskLive WS<br/>后端↔TaskFlow"]
+    Term["WS Terminal<br/>交互式 TTY"]
 
-    subgraph Backend["后端 Go"]
-        Stream["Stream WS<br/>/tasks/stream?id=T&mode=new<br/>ACP 事件流"]
-        Control["Control WS<br/>/tasks/control?id=T<br/>RPC 调用"]
-        TaskLive["TaskLive WS<br/>Backend ↔ TaskFlow<br/>内部通信"]
-    end
+    Client -->|建立连接| Stream
+    Client -->|查询状态| Control
+    Client -->|终端操作| Term
 
-    subgraph VM["TaskFlow VM"]
-        Term["Terminal WS<br/>/hosts/vms/{vm}/terminals<br/>交互式 TTY"]
-        Agent["Agent<br/>Codex/Claude"]
-    end
-
-    subgraph Events["ACP 事件类型"]
+    subgraph ACP["ACP 事件"]
         MSG["agent_message_chunk<br/>文本输出"]
         THK["agent_thought_chunk<br/>推理过程"]
-        TOOL["tool_call / tool_call_update<br/>工具调用"]
+        TOOL["tool_call / update<br/>工具调用"]
         USG["usage_update<br/>Token 用量"]
-        PLAN["plan<br/>执行计划"]
     end
 
-    Proxy -->|建立连接| Stream
-    Stream -->|ping/10s| Proxy
-    Stream -->|推事件| Proxy
-    Proxy -->|user-input| Stream
-    Proxy -->|auto-approve| Stream
-    Backend -.->|TaskChunk| TaskLive
-    TaskLive -.->|任务控制| Agent
-    Proxy -.->|查询状态| Control
-    Control -.->|文件操作| Backend
-
-    Stream --> Events
+    Stream --> ACP
 ```
 
-## 核心发现
-
-| 关键项 | 值 |
-|--------|-----|
-| Stream WS 端点 | `GET /api/v1/users/tasks/stream?id={taskId}&mode=new\|attach` |
-| Control WS 端点 | `GET /api/v1/users/tasks/control?id={taskId}` |
-| Terminal WS 端点 | `GET /api/v1/users/hosts/vms/{vmId}/terminals/connect` |
-| ACP 事件类型 | agent_message_chunk / agent_thought_chunk / tool_call / tool_call_update / usage_update / plan / available_commands_update |
-| 心跳间隔 | 10s（服务器端 ping） |
-| 重连策略 | 指数退避 500ms → 1s → 2s → 4s → 8s |
-
----
-
-## 相关章节
-
-- [第三章：LLM 通信协议](../03-llm/README.md) — ACP 事件中的 LLM 输出内容
-- [第六章：VM & TaskFlow](../06-vm-taskflow/README.md) — TaskLive 内部通信的上游
-- [第七章：代理实现](../07-proxy/README.md) — 代理中的 ACP → OpenAI 事件映射
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [Task Stream](01-task-stream.md) | ACP 事件流、用户输入、重连机制 | 279L |
+| 2 | [Task Control](02-task-control.md) | RPC 调用：文件操作、重启、切换模型 | 237L |
+| 3 | [Terminal TTY](03-terminal.md) | 交互式终端、二进制帧、Keepalive | 290L |
+| 4 | [TaskLive 内部通信](04-tasklive-internal.md) | Backend ↔ TaskFlow 节点通信 | 212L |
+| 5 | [语音转文本](05-speech-to-text.md) | Doubao ASR、PCM S16LE 编码 | 259L |
+| 6 | [ACP 事件参考](06-acp-event-reference.md) | 完整事件类型、字段、示例 | 201L |
+| 7 | [会话生命周期](07-conversation-lifecycle.md) | mode=attach 多轮复用协议 | 465L |

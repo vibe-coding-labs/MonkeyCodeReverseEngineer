@@ -1,72 +1,29 @@
-# 第五章：API 端点和授权
+# API 层
 
-> **章节状态:** ✅ 所有文件已创建（Conversation 70%、订阅需线上确认）
-> **最后更新:** 2026-06-25
-> **覆盖范围:** 完整 API 端点目录、授权层级矩阵、Conversation API、订阅计费 API、管理后台 API
-
----
-
-## 文件清单
-
-| # | 文件 | 内容 | 完成度 |
-|---|------|------|--------|
-| 1 | [01-endpoint-catalog.md](01-endpoint-catalog.md) | 完整 API 端点目录（100+ 端点，含认证要求和请求格式） | ✅ 已完成 |
-| 2 | [02-authorization-matrix.md](02-authorization-matrix.md) | 授权层级与访问控制矩阵（角色体系、5 种中间件、资源规则） | ✅ 已完成 |
-| 3 | [03-conversation-api.md](03-conversation-api.md) | Conversation API 分析（6 个端点，JSON Schema 推导） | 🟡 70%（待线上确认）|
-| 4 | [04-subscription-billing.md](04-subscription-billing.md) | 订阅与计费 API（SubscriptionResp、余额） | ✅ 已完成 |
-| 5 | [05-admin-management-api.md](05-admin-management-api.md) | 管理后台 API（用户管理、模型管理、审计） | ✅ 已完成 |
-
----
-
-## API 端点分类
+> **所属位置:** 第二篇·通讯协议 — REST API 层
+> **前置要求:** 先读认证协议
+> **阅读目标:** 掌握 100+ 端点的功能、授权模型和使用方式
 
 ```mermaid
 flowchart LR
-    subgraph Auth["认证 · 8端点"]
-        A1["登录/登出/注册"]
-        A2["密码管理"]
-        A3["状态检查"]
-    end
-    subgraph Model["模型 · 6端点"]
-        M1["模型 CRUD"]
-        M2["健康检查"]
-        M3["模型列表"]
-    end
-    subgraph Task["任务 · 10+端点"]
-        T1["任务 CRUD"]
-        T2["WS Stream"]
-        T3["WS Control"]
-        T4["任务停止"]
-    end
-    subgraph Sub["订阅 · 4端点"]
-        S1["订阅查询"]
-        S2["订阅创建"]
-        S3["余额查询"]
-    end
-    subgraph Admin["管理 · 12端点"]
-        AD1["用户管理"]
-        AD2["系统配置"]
-        AD3["审计日志"]
-    end
+    Auth["🔐 认证<br/>8 端点"]
+    Model["🤖 模型<br/>6 端点"]
+    Task["⚡ 任务<br/>10+ 端点"]
+    WS["WS 通道"]
+    Sub["💳 订阅<br/>4 端点"]
+    Admin["⚙️ 管理<br/>12 端点"]
 
-    Auth --> Task
+    Auth --> Model
     Model --> Task
-    Task -->|ACP 事件| WS["WebSocket 通道"]
+    Task --> WS
     Sub -.->|限制| Task
-    Admin -.->|管控| Auth
-    Admin -.->|管控| Model
+    Admin -.->|管控| Auth & Model
 ```
 
-| 关键项 | 值 |
-|--------|-----|
-| 已知端点总数 | 100+（89 个需认证 + 11 个公开） |
-| API 前缀 | `/api/v1/` |
-| 统一响应格式 | `{"code": 0, "msg": "success", "data": ...}` |
-| 认证缺失维度 | Conversation API（40%）、管理后台 API（0%）、订阅 API（概览） |
-
----
-
-## 相关章节
-
-- [第二章：认证协议](../02-auth/README.md) — 认证中间件细节
-- [第四章：WebSocket 协议](../04-websocket/README.md) — WebSocket 端点详情
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [端点目录](01-endpoint-catalog.md) | 100+ 端点完整清单 | 249L |
+| 2 | [授权矩阵](02-authorization-matrix.md) | 角色体系、5 种中间件、资源规则 | 394L |
+| 3 | [Conversation API](03-conversation-api.md) | 多轮会话 6 端点、JSON Schema | 222L |
+| 4 | [订阅与计费](04-subscription-billing.md) | SubscriptionResp、余额、Stripe | 216L |
+| 5 | [Admin 管理 API](05-admin-management-api.md) | 用户/模型/审计 12 端点 | 299L |

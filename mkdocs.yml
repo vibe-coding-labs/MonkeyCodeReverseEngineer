@@ -1,5 +1,5 @@
 site_name: MonkeyCode 逆向工程分析全书
-site_description: MonkeyCode AI 平台逆向工程与协议分析完整文档
+site_description: MonkeyCode AI 平台逆向工程与协议分析完整文档 — 从架构到协议到实现，系统化知识体系
 site_author: CC11001100
 site_url: https://vibe-coding-labs.github.io/MonkeyCodeReverseEngineer/
 repo_name: MonkeyCodeReverseEngineer
@@ -11,12 +11,14 @@ theme:
   language: zh
   icon:
     repo: fontawesome/brands/github
+  logo: assets/images/logo.png
   features:
     - navigation.instant
     - navigation.tracking
     - navigation.tabs
     - navigation.sections
     - navigation.top
+    - navigation.indexes
     - search.highlight
     - search.suggest
     - content.code.annotate
@@ -82,89 +84,95 @@ copyright: Copyright &copy; 2026 CC11001100 — 仅供研究学习用途
 nav:
   - 🏠 首页: index.md
 
-  - 📐 第一章：系统架构:
-    - 📖 章节总览: 01-architecture/README.md
+  # ==================== 第一篇：基础入门 ====================
+  - 🚀 第一篇·基础入门:
+    - 01-architecture/README.md
     - 系统架构总览: 01-architecture/01-system-overview.md
-    - 数据流: 01-architecture/02-data-flow.md
-    - 组件层级: 01-architecture/03-component-layer.md
+    - 核心数据流: 01-architecture/02-data-flow.md
+    - 组件层级分析: 01-architecture/03-component-layer.md
     - 错误处理模式: 01-architecture/04-error-handling-patterns.md
 
-  - 🔐 第二章：认证协议:
-    - 📖 章节总览: 02-auth/README.md
-    - Session 存储: 02-auth/01-session-storage.md
-    - 验证码系统: 02-auth/02-captcha-system.md
-    - 登录方式: 02-auth/03-login-methods.md
-    - 百智云 OAuth: 02-auth/04-oauth-baizhi-cloud.md
-    - 认证中间件: 02-auth/05-auth-middleware.md
-    - 密码管理: 02-auth/06-password-management.md
-    - 认证自动化: 02-auth/07-auth-automation.md
-    - 号池缺口分析: 02-auth/08-pool-gap-analysis.md
+  # ==================== 第二篇：通讯协议 ====================
+  - 🔌 第二篇·通讯协议:
+    - 🔐 认证协议:
+      - 02-auth/README.md
+      - Session 存储机制: 02-auth/01-session-storage.md
+      - 验证码系统: 02-auth/02-captcha-system.md
+      - 五种登录方式: 02-auth/03-login-methods.md
+      - 百智云 OAuth: 02-auth/04-oauth-baizhi-cloud.md
+      - 认证中间件: 02-auth/05-auth-middleware.md
+      - 密码管理: 02-auth/06-password-management.md
+      - 认证自动化: 02-auth/07-auth-automation.md
+      - 号池缺口分析: 02-auth/08-pool-gap-analysis.md
+    - 🌐 API 层:
+      - 05-api/README.md
+      - 端点目录: 05-api/01-endpoint-catalog.md
+      - 授权矩阵: 05-api/02-authorization-matrix.md
+      - Conversation API: 05-api/03-conversation-api.md
+      - 订阅与计费: 05-api/04-subscription-billing.md
+      - Admin 管理 API: 05-api/05-admin-management-api.md
+    - 🔗 WebSocket 实时通信:
+      - 04-websocket/README.md
+      - Task Stream 通道: 04-websocket/01-task-stream.md
+      - Task Control 通道: 04-websocket/02-task-control.md
+      - Terminal TTY 通道: 04-websocket/03-terminal.md
+      - TaskLive 内部通信: 04-websocket/04-tasklive-internal.md
+      - 语音转文本: 04-websocket/05-speech-to-text.md
+      - ACP 事件参考: 04-websocket/06-acp-event-reference.md
+      - 会话生命周期: 04-websocket/07-conversation-lifecycle.md
 
-  - 🤖 第三章：LLM 通信协议:
-    - 📖 章节总览: 03-llm/README.md
-    - 模型管理 API: 03-llm/01-model-management-api.md
-    - 三种接口类型: 03-llm/02-interface-types.md
-    - 提供商配置: 03-llm/03-provider-list.md
-    - 模型定价与配额: 03-llm/04-model-pricing-quota.md
-    - LLM 集成协议: 03-llm/05-llm-integration.md
-    - Coding Agent 配置: 03-llm/06-coding-agent-config.md
-    - 私有模型创建: 03-llm/06-private-model-creation.md
-    - 模型发现 Pipeline: 03-llm/07-model-discovery-pipeline.md
+  # ==================== 第三篇：运行原理 ====================
+  - ⚙️ 第三篇·运行原理:
+    - 🤖 LLM 调用链路:
+      - 03-llm/README.md
+      - 模型管理 API: 03-llm/01-model-management-api.md
+      - 三种接口类型: 03-llm/02-interface-types.md
+      - 提供商配置: 03-llm/03-provider-list.md
+      - 模型定价与配额: 03-llm/04-model-pricing-quota.md
+      - LLM 集成协议: 03-llm/05-llm-integration.md
+      - Coding Agent 配置: 03-llm/06-coding-agent-config.md
+      - 私有模型创建: 03-llm/06-private-model-creation.md
+      - 模型发现 Pipeline: 03-llm/07-model-discovery-pipeline.md
+    - 🖥️ VM & TaskFlow 执行引擎:
+      - 06-vm-taskflow/README.md
+      - TaskFlow 架构: 06-vm-taskflow/01-architecture.md
+      - VM 生命周期: 06-vm-taskflow/02-vm-lifecycle.md
+      - MCP 协议: 06-vm-taskflow/03-mcp-protocol.md
+      - Agent 内部架构: 06-vm-taskflow/04-agent-internals.md
+      - 资源管理: 06-vm-taskflow/05-resource-management.md
 
-  - 🔌 第四章：WebSocket 协议:
-    - 📖 章节总览: 04-websocket/README.md
-    - Task Stream: 04-websocket/01-task-stream.md
-    - Task Control: 04-websocket/02-task-control.md
-    - Terminal TTY: 04-websocket/03-terminal.md
-    - TaskLive 内部通信: 04-websocket/04-tasklive-internal.md
-    - 语音转文本: 04-websocket/05-speech-to-text.md
-    - ACP 事件参考: 04-websocket/06-acp-event-reference.md
-    - 会话生命周期: 04-websocket/07-conversation-lifecycle.md
+  # ==================== 第四篇：工程实现 ====================
+  - 🛠️ 第四篇·工程实现:
+    - ⚡ 反向代理:
+      - 07-proxy/README.md
+      - 代理架构: 07-proxy/01-architecture.md
+      - 账号池: 07-proxy/02-account-pool.md
+      - 多轮对话: 07-proxy/03-multi-turn-conversation.md
+      - ACP→OpenAI 映射: 07-proxy/04-acp-to-openai-mapping.md
+      - OAuth 自动化(Playwright): 07-proxy/05-oauth-automation.md
+      - 浏览器指纹: 07-proxy/06-browser-fingerprinting.md
+      - OAuth HTTP 自动化: 07-proxy/06-oauth-automation-http.md
+      - 部署与中间件: 07-proxy/07-deployment-infrastructure.md
+      - 服务器启动: 07-proxy/08-server-startup.md
+      - 错误处理深度分析: 07-proxy/09-error-handling-deep.md
+      - OAuth HTTP 深度: 07-proxy/09-oauth-http-automation-deep.md
 
-  - 🌐 第五章：API 端点和授权:
-    - 📖 章节总览: 05-api/README.md
-    - 端点目录: 05-api/01-endpoint-catalog.md
-    - 授权矩阵: 05-api/02-authorization-matrix.md
-    - Conversation API: 05-api/03-conversation-api.md
-    - 订阅与计费: 05-api/04-subscription-billing.md
-    - Admin 管理 API: 05-api/05-admin-management-api.md
+  # ==================== 第五篇：研究记录 ====================
+  - 📖 第五篇·研究记录:
+    - 📊 逆向分析过程:
+      - 08-analysis-rounds/README.md
+      - 汇总报告: 08-analysis-rounds/summary-report.md
+      - 第 1~6 轮（初探）: 08-analysis-rounds/rounds/round-01-to-06.md
+      - 第 7~12 轮（深入）: 08-analysis-rounds/rounds/round-07-to-12.md
+      - 第 13~18 轮（实现）: 08-analysis-rounds/rounds/round-13-to-18.md
+    - 🛡️ 安全分析:
+      - 09-security/README.md
+      - 百智云安全报告: 09-security/baizhi-security-report.md
+      - 代理安全加固: 09-security/02-proxy-security-analysis.md
 
-  - 🖥️ 第六章：VM & TaskFlow:
-    - 📖 章节总览: 06-vm-taskflow/README.md
-    - TaskFlow 架构: 06-vm-taskflow/01-architecture.md
-    - VM 生命周期: 06-vm-taskflow/02-vm-lifecycle.md
-    - MCP 协议: 06-vm-taskflow/03-mcp-protocol.md
-    - Agent 内部架构: 06-vm-taskflow/04-agent-internals.md
-    - 资源管理: 06-vm-taskflow/05-resource-management.md
-
-  - ⚡ 第七章：代理实现:
-    - 📖 章节总览: 07-proxy/README.md
-    - 代理架构: 07-proxy/01-architecture.md
-    - 账号池: 07-proxy/02-account-pool.md
-    - 多轮对话: 07-proxy/03-multi-turn-conversation.md
-    - ACP→OpenAI 映射: 07-proxy/04-acp-to-openai-mapping.md
-    - OAuth 自动化(Playwright): 07-proxy/05-oauth-automation.md
-    - 浏览器指纹: 07-proxy/06-browser-fingerprinting.md
-    - OAuth HTTP 自动化: 07-proxy/06-oauth-automation-http.md
-    - 部署与中间件: 07-proxy/07-deployment-infrastructure.md
-    - 服务器启动: 07-proxy/08-server-startup.md
-    - 错误处理深度分析: 07-proxy/09-error-handling-deep.md
-    - OAuth HTTP 深度: 07-proxy/09-oauth-http-automation-deep.md
-
-  - 📊 第八章：分析轮次:
-    - 📖 章节总览: 08-analysis-rounds/README.md
-    - 汇总报告: 08-analysis-rounds/summary-report.md
-    - 第 1~6 轮: 08-analysis-rounds/rounds/round-01-to-06.md
-    - 第 7~12 轮: 08-analysis-rounds/rounds/round-07-to-12.md
-    - 第 13~18 轮: 08-analysis-rounds/rounds/round-13-to-18.md
-
-  - 🛡️ 第九章：安全分析:
-    - 📖 章节总览: 09-security/README.md
-    - 百智云安全报告: 09-security/baizhi-security-report.md
-    - 代理安全加固: 09-security/02-proxy-security-analysis.md
-
-  - 📎 第十章：附录:
-    - 📖 章节总览: 10-appendices/README.md
+  # ==================== 第六篇：参考 ====================
+  - 📚 第六篇·参考与附录:
+    - 📎 附录: 10-appendices/README.md
     - ASAR 分析: 10-appendices/01-asar-analysis.md
     - 错误码全集: 10-appendices/02-error-codes.md
     - 环境变量全集: 10-appendices/03-environment-variables.md
@@ -174,43 +182,24 @@ nav:
     - WebSocket 帧: 10-appendices/07-websocket-frames.md
     - Python vs TS: 10-appendices/08-python-vs-ts.md
     - MVP Python 分析: 10-appendices/09-mvp-python-analysis.md
-
-  - 📦 原始分析档案:
-    - 档案说明: protocol/README.md
-    - 分析总结: protocol/analysis-summary.md
-    - 账号池协议: protocol/account-pool-protocol.md
-    - API 端点: protocol/api-endpoints.md
-    - 架构: protocol/architecture.md
-    - ASAR 分析: protocol/asar-analysis.md
-    - 认证自动化: protocol/auth-automation-analysis.md
-    - 授权矩阵: protocol/authorization-matrix.md
-    - 号池缺口: protocol/auth-pool-gap-analysis.md
-    - 认证协议完整: protocol/auth-protocol-complete.md
-    - 号池认证协议: protocol/auth-protocol-pool-complete.md
-    - 未决验证: protocol/auth-unresolved-verification.md
-    - LLM 集成: protocol/llm-integration.md
-    - LLM 协议完整: protocol/llm-protocol-complete.md
-    - 模型定价: protocol/model-pricing-quota.md
-    - 多轮对话: protocol/multi-turn-design.md
-    - TaskFlow VM: protocol/taskflow-vm-analysis.md
-    - WebSocket 协议: protocol/websocket-protocol.md
-    - 第 01 轮: protocol/analysis-round-01.md
-    - 第 02 轮: protocol/analysis-round-02.md
-    - 第 03 轮: protocol/analysis-round-03.md
-    - 第 04 轮: protocol/analysis-round-04.md
-    - 第 05 轮: protocol/analysis-round-05.md
-    - 第 06 轮: protocol/analysis-round-06.md
-    - 第 07 轮: protocol/analysis-round-07.md
-    - 第 08 轮: protocol/analysis-round-08.md
-    - 第 09 轮: protocol/analysis-round-09.md
-    - 第 10 轮: protocol/analysis-round-10.md
-    - 第 11 轮: protocol/analysis-round-11.md
-    - 第 12 轮: protocol/analysis-round-12.md
-    - 第 13 轮: protocol/analysis-round-13.md
-    - 第 14 轮: protocol/analysis-round-14.md
-    - 第 15 轮: protocol/analysis-round-15.md
-    - 第 16 轮: protocol/analysis-round-16.md
-    - 第 17 轮: protocol/analysis-round-17.md
-    - 第 18 轮: protocol/analysis-round-18.md
-
-  - 📋 主检查清单: MASTER-CHECKLIST.md
+    - 📦 原始分析档案（35 份）:
+      - 档案说明: protocol/README.md
+      - 分析总结: protocol/analysis-summary.md
+      - 账号池协议: protocol/account-pool-protocol.md
+      - API 端点: protocol/api-endpoints.md
+      - 架构: protocol/architecture.md
+      - ASAR 分析: protocol/asar-analysis.md
+      - 认证自动化: protocol/auth-automation-analysis.md
+      - 授权矩阵: protocol/authorization-matrix.md
+      - 号池缺口: protocol/auth-pool-gap-analysis.md
+      - 认证协议完整: protocol/auth-protocol-complete.md
+      - 号池认证协议: protocol/auth-protocol-pool-complete.md
+      - 未决验证: protocol/auth-unresolved-verification.md
+      - LLM 集成: protocol/llm-integration.md
+      - LLM 协议完整: protocol/llm-protocol-complete.md
+      - 模型定价: protocol/model-pricing-quota.md
+      - 多轮对话: protocol/multi-turn-design.md
+      - TaskFlow VM: protocol/taskflow-vm-analysis.md
+      - WebSocket 协议: protocol/websocket-protocol.md
+      - 第 01~18 轮原始记录: protocol/
+    - 📋 完成度检查: MASTER-CHECKLIST.md

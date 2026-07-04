@@ -1,22 +1,20 @@
-# 第十章：附录
+# 参考与附录
 
-> **章节状态:** ✅ 所有文件已创建
-> **最后更新:** 2026-06-25
-> **覆盖范围:** 速查表、Electron ASAR 分析、术语表
+> **所属位置:** 第六篇·参考 — 速查表和原始档案
+> **阅读目标:** 需要时查阅具体的技术细节
 
----
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [ASAR 分析](01-asar-analysis.md) | Electron 桌面壳逆向 | 251L |
+| 2 | [错误码全集](02-error-codes.md) | API/HTTP/ACP/代理错误码 | 178L |
+| 3 | [环境变量全集](03-environment-variables.md) | 5 类 30+ 环境变量 | 180L |
+| 4 | [术语表](04-glossary.md) | 100+ 术语全定义 | 134L |
+| 5 | [代码展品](05-code-exhibits.md) | 关键代码示例索引 | 153L |
+| 6 | [API 载荷](06-api-payloads.md) | 请求/响应示例 | 391L |
+| 7 | [WebSocket 帧](07-websocket-frames.md) | 帧数据示例 | 321L |
+| 8 | [Python vs TS](08-python-vs-ts.md) | 双语言实现对比 | 289L |
+| 9 | [MVP Python 分析](09-mvp-python-analysis.md) | 验证工具源码分析 | 379L |
 
-## 文件清单
+### 原始分析档案
 
-| # | 文件 | 内容 | 完成度 |
-|---|------|------|--------|
-| 1 | [01-asar-analysis.md](01-asar-analysis.md) | Electron ASAR 逆向分析（桌面壳结构、安全配置） | ✅ 已完成 |
-| 2 | [02-error-codes.md](02-error-codes.md) | 错误码速查表（API 错误码、HTTP 状态码、ACP 事件错误） | ✅ 已完成 |
-| 3 | [03-environment-variables.md](03-environment-variables.md) | 环境变量速查表（MonkeyCode 后端 + Proxy 环境变量全集） | ✅ 已完成 |
-| 4 | [04-glossary.md](04-glossary.md) | 术语表（ACP、TaskFlow、VM、MCP 等首字母缩略词定义） | ✅ 已完成 |
-
----
-
-## 如何使用附录
-
-附录内容按字母/逻辑顺序组织，每个条目自包含。当主文档需要引用速查信息时，使用超链接链接到附录中的具体条目。
+`docs/protocol/` 目录包含 35 份原始分析记录（~12,903 行），内容已被各章节覆盖，保留作为历史记录。

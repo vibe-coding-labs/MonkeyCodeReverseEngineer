@@ -1,74 +1,71 @@
-# 第二章：认证协议
+# 第二篇：通讯协议
 
-> **章节状态:** ✅ 所有文件已完成
-> **最后更新:** 2026-06-25
-> **覆盖范围:** Cookie-based Session 认证、5 种登录方式、验证码系统、认证中间件、密码管理
-
----
-
-## 文件清单
-
-| # | 文件 | 内容 | 完成度 |
-|---|------|------|--------|
-| 1 | [01-session-storage.md](01-session-storage.md) | Session 存储机制（Redis 数据结构、Cookie 属性、生命周期） | ✅ 已完成 |
-| 2 | [02-captcha-system.md](02-captcha-system.md) | 验证码系统分析（CAP.js / go-cap 前端集成） | ✅ 已完成 |
-| 3 | [03-login-methods.md](03-login-methods.md) | 5 种登录方式详解（密码/OAuth/Git/团队/Impersonate） | ✅ 已完成 |
-| 4 | [04-oauth-baizhi-cloud.md](04-oauth-baizhi-cloud.md) | 百智云 OAuth 完整流程（SCaptcha + SMS + 跳转） | ✅ 已完成 |
-| 5 | [05-auth-middleware.md](05-auth-middleware.md) | 认证中间件体系（Auth/Check/TeamAuth/TeamAdminAuth） | ✅ 已完成 |
-| 6 | [06-password-management.md](06-password-management.md) | 密码管理接口（修改/重置/重置请求） | ✅ 已完成 |
-| 7 | [07-auth-automation.md](07-auth-automation.md) | 认证自动化（SCaptcha 绕过、Playwright OAuth、HTTP 模拟） | ✅ 已完成 |
-| 8 | [08-pool-gap-analysis.md](08-pool-gap-analysis.md) | 认证号池差距分析（多账号策略、状态管理、锁机制） | ✅ 已完成 |
+> **所属位置:** 本书第二篇 — 理解 MonkeyCode 前后端之间怎么通信
+> **阅读目标:** 掌握认证、API、WebSocket 三大通讯环节的完整协议
+> **前置要求:** 先读第一篇·基础入门
+> **预计时间:** 40 分钟
 
 ---
-
-## 认证流程全景
 
 ```mermaid
-flowchart TB
-    subgraph Login["5种登录方式"]
-        Pwd["① 密码登录<br/>POST password-login"]
-        OAuth["② 百智云 OAuth<br/>SCaptcha + SMS + 回调"]
-        Git["③ Git 身份绑定<br/>第三方 OAuth token"]
-        Team["④ 团队登录<br/>POST teams/login"]
-        Imp["⑤ Admin Impersonate<br/>管理员模拟"]
-    end
+graph TD
+    Start["🏗️ 第一篇·基础入门"]
+    Start --> Auth["🔐 认证协议<br/>怎么登录·怎么鉴权"]
+    Auth --> API["🌐 API 层<br/>100+ 端点做什么"]
+    API --> WS["🔗 WebSocket 实时通信<br/>ACP 事件怎么流"]
+    WS --> Next["👉 进入第三篇·运行原理"]
 
-    subgraph Session["Session 管理"]
-        Key["Redis Lookup Key<br/>map[user_id]session_id"]
-        Hash["Redis Hash<br/>session_id → {user,expire}"]
-        Cookie["Cookie: monkeycode_ai_session<br/>30天 TTL"]
-    end
-
-    subgraph Middleware["中间件链"]
-        MA["AuthRequired<br/>检查 Cookie 存在"]
-        MC["CheckPermission<br/>验证角色权限"]
-        MT["TeamAuth<br/>团队上下文"]
-    end
-
-    Login -->|Set-Cookie| Cookie
-    Cookie -->|request| Middleware
-    Middleware -->|user_id| Key
-    Key -->|session_id| Hash
-
-    style Key fill:#4a6,color:#fff
-    style Hash fill:#4a6,color:#fff
-    style Cookie fill:#64a,color:#fff
+    style Start fill:#555,color:#fff
+    style Next fill:#555,color:#fff
 ```
 
-## 核心发现
+通讯协议篇分为三个子主题，建议按顺序阅读：
 
-| 关键项 | 值 |
-|--------|-----|
-| Session Cookie 名 | `monkeycode_ai_session`（用户）/ `monkeycode_ai_team_session`（团队） |
-| 后端框架 | Go / Gin |
-| 认证方式 | Cookie-based Session |
-| Session 存储 | Redis（Hash + Lookup Key 双结构） |
-| Session 有效期 | 30 天硬限制，不可刷新 |
-| 验证码 | CAP.js / go-cap（50x32 网格） |
+1. **认证协议** — 从 Session 到 OAuth，完整的身份认证体系
+2. **API 层** — 100+ 端点的功能目录和授权模型
+3. **WebSocket 实时通信** — ACP 事件如何从 VM 流到前端
 
 ---
 
-## 相关章节
+## 子主题一：认证协议
 
-- [第一章：系统架构](../01-architecture/README.md) — 认证组件在架构中的位置
-- [第七章：代理实现](../07-proxy/README.md) — 代理中的认证模块实现细节
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [Session 存储机制](01-session-storage.md) | Redis 双结构、Cookie TTL、30 天过期 | 306L |
+| 2 | [验证码系统](02-captcha-system.md) | CAP.js、go-cap 50x32 网格验证码 | 205L |
+| 3 | [五种登录方式](03-login-methods.md) | 密码/OAuth/Git/团队/Impersonate | 208L |
+| 4 | [百智云 OAuth](04-oauth-baizhi-cloud.md) | 6 步 OAuth 流程、SCaptcha + SMS | 275L |
+| 5 | [认证中间件](05-auth-middleware.md) | Go 中间件 + AuthManager 双视角 | 282L |
+| 6 | [密码管理](06-password-management.md) | bcrypt 实现、修改/重置流程 | 157L |
+| 7 | [认证自动化](07-auth-automation.md) | 验证码绕过、Session 保活 | 247L |
+| 8 | [号池缺口分析](08-pool-gap-analysis.md) | 多账号策略、状态机、锁机制 | 397L |
+
+---
+
+## 子主题二：API 层
+
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [端点目录](../05-api/01-endpoint-catalog.md) | 100+ 端点完整清单 | 249L |
+| 2 | [授权矩阵](../05-api/02-authorization-matrix.md) | 角色/中间件/资源三层授权 | 394L |
+| 3 | [Conversation API](../05-api/03-conversation-api.md) | 多轮会话 API 设计 | 222L |
+| 4 | [订阅与计费](../05-api/04-subscription-billing.md) | SubscriptionResp、余额查询 | 216L |
+| 5 | [Admin 管理 API](../05-api/05-admin-management-api.md) | 用户/模型/审计管理员端点 | 299L |
+
+---
+
+## 子主题三：WebSocket 实时通信
+
+| # | 文件 | 内容 | 行数 |
+|---|------|------|------|
+| 1 | [Task Stream](../04-websocket/01-task-stream.md) | ACP 事件流、用户输入、重连机制 | 279L |
+| 2 | [Task Control](../04-websocket/02-task-control.md) | RPC 调用：文件操作、重启、切换模型 | 237L |
+| 3 | [Terminal TTY](../04-websocket/03-terminal.md) | 交互式终端、二进制帧 | 290L |
+| 4 | [TaskLive 内部](../04-websocket/04-tasklive-internal.md) | Backend ↔ TaskFlow 内部通信 | 212L |
+| 5 | [语音转文本](../04-websocket/05-speech-to-text.md) | Doubao ASR、PCM S16LE 编码 | 259L |
+| 6 | [ACP 事件参考](../04-websocket/06-acp-event-reference.md) | 完整事件类型和字段 | 201L |
+| 7 | [会话生命周期](../04-websocket/07-conversation-lifecycle.md) | mode=attach 多轮复用 | 465L |
+
+---
+
+**继续阅读:** [第三篇·运行原理 → LLM 调用链路](../03-llm/README.md)
