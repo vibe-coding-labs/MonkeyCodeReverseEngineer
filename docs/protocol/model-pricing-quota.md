@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 模型清单与额度限制分析报告
 
 > **分析日期:** 2026-06-13

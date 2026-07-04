@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 逆向分析总结报告
 
 > **分析周期:** 2026-05-30 00:40 — 02:25 UTC+8

@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 完整架构与数据流
 
 ## 系统架构

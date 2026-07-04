@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 授权层级与 API 访问控制矩阵
 
 > 基于 chaitin/MonkeyCode 开源后端源码逆向分析

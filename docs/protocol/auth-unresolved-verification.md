@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 认证协议未决问题验证报告
 
 > 基于 chaitin/MonkeyCode 开源源码深度分析

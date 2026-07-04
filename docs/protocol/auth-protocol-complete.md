@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 认证协议完整文档
 
 > 基于 chaitin/MonkeyCode 开源后端 + 前端源码 + 线上 API 实测逆向分析

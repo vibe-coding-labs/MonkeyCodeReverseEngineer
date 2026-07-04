@@ -1,3 +1,5 @@
+> ⚠️ **此文件为原始分析档案** — 内容已被 docs/ 下结构化章节覆盖。详见 [docs/protocol/README.md](./README.md)。
+
 # MonkeyCode 账号池认证协议完整报告
 
 > 基于 chaitin/MonkeyCode 开源后端源码逆向分析
