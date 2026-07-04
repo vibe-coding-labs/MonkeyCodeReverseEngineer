@@ -12,8 +12,8 @@
 | 3 | Agent 对 ACP 事件的生成逻辑 | task-runner.ts handleACPEvent 的 7 种事件 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-acp-event-generation.md) |
 | 4 | LLM 调用失败的重试策略 | account-pool.ts handleError 4 级错误隔离 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-retry-strategy.md) |
 | 5 | `tool_call_update` 未映射到 OpenAI 格式 | task-runner.ts 仅 log 不转发 | P0 | 代码增强 | ✅ 已完成 → [报告](unknown-tool-call-mapping.md) |
-| 6 | `plan` / `available_commands_update` 未映射 | task-runner.ts 仅 log | P0 | 代码增强 | 🔄 下一轮 |
-| 7 | Agent 是否支持多模态输入 | model 配置 support_image 字段 | P0 | 源码分析 |
+| 6 | `plan` / `available_commands_update` 未映射 | task-runner.ts 仅 log | P0 | 代码增强 | ✅ 已完成 → [报告](unknown-plan-commands-mapping.md) |
+| 7 | Agent 是否支持多模态输入 | model 配置 support_image 字段 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-multimodal-support.md) |
 
 ## 优先级 P1（需线上环境确认）
 
