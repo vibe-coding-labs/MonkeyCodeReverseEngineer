@@ -10,8 +10,8 @@
 | 1 | Agent 如何构造 LLM 请求（prompt template） | task-runner.ts 中 prompt 构造 + cli_name 映射 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-agent-llm-request.md) |
 | 2 | Agent 如何处理工具调用结果 | task-runner.ts handleStreamMessage ACP 事件处理 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-agent-tool-call.md) |
 | 3 | Agent 对 ACP 事件的生成逻辑 | task-runner.ts handleACPEvent 的 7 种事件 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-acp-event-generation.md) |
-| 4 | LLM 调用失败的重试策略 | account-pool.ts handleError 4 级错误隔离 | P0 | 源码分析 | 🔄 下一轮 |
-| 5 | `tool_call_update` 未映射到 OpenAI 格式 | task-runner.ts 仅 log 不转发 | P0 | 代码增强 |
+| 4 | LLM 调用失败的重试策略 | account-pool.ts handleError 4 级错误隔离 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-retry-strategy.md) |
+| 5 | `tool_call_update` 未映射到 OpenAI 格式 | task-runner.ts 仅 log 不转发 | P0 | 代码增强 | 🔄 下一轮 |
 | 6 | `plan` / `available_commands_update` 未映射 | task-runner.ts 仅 log | P0 | 代码增强 |
 | 7 | Agent 是否支持多模态输入 | model 配置 support_image 字段 | P0 | 源码分析 |
 
