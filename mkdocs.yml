@@ -181,6 +181,7 @@ nav:
       - 🔬 第1~6轮（初探） — ASAR/登录/架构: 08-analysis-rounds/rounds/round-01-to-06.md
       - 🔎 第7~12轮（深入） — ACP/OAuth/订阅: 08-analysis-rounds/rounds/round-07-to-12.md
       - 🛠️ 第13~18轮（实现） — 代理/Bug修复: 08-analysis-rounds/rounds/round-13-to-18.md
+      - 📋 缺口追踪清单 — 未分析项的优先级和状态: 08-analysis-rounds/unknown-gaps-index.md
     - 🛡️ 安全分析 — 漏洞发现与加固:
       - 09-security/README.md
       - ⚠️ 百智云安全报告 — SCaptcha漏洞: 09-security/baizhi-security-report.md
