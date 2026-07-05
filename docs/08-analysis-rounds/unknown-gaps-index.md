@@ -55,8 +55,7 @@
 | 33 | Python MVP test_auth.py 测试框架设计 | 498 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-test-auth.md) |
 | 34 | Python MVP test_protocol.py 协议验证方法 | 268 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-test-protocol.md) |
 | 35 | Electron 桌面壳安全架构与启动流程 | analysis/asar-content/electron/ (140行) | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-electron-shell.md) |
-| 36 | ModelProvider API Key 注入机制 | api_key 字段为空时后端行为 | P0 | 源码分析 |
-| 36 | ModelProvider API Key 注入机制 | api_key 字段为空时后端行为 | P0 | 源码分析 |
+| 36 | ModelProvider API Key 注入机制 | api_key 字段为空时后端行为 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-api-key-injection.md) |
 | 37 | TeamPolicy 并发控制与限流 | Go team_policy.go 3并发限制 | P0 | 源码分析 |
 | 38 | 前后端版本一致性协议 | Electron 壳与后端的版本协商 | P0 | 源码分析 |
 | 39 | Task Chunk 协议与 TaskLive 通信 | Go TaskChunk 格式 + HTTP/WS 双通道 | P0 | 源码分析 |
