@@ -52,5 +52,12 @@
 | 30 | types.ts 类型系统的设计演进 | 180 行完整类型定义 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-types-system.md) |
 | 31 | Python MVP oauth_login.py Playwright 自动化 | 461 行浏览器自动化 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-oauth-playwright.md) |
 | 32 | Python MVP proxy_real.py 完整实现 vs TS 代理 | 873 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-python-proxy.md) |
-| 33 | Python MVP test_auth.py 测试框架设计 | 498 行 | P0 | 源码分析 |
-| 34 | Python MVP test_protocol.py 协议验证方法 | 268 行 | P0 | 源码分析 |
+| 33 | Python MVP test_auth.py 测试框架设计 | 498 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-test-auth.md) |
+| 34 | Python MVP test_protocol.py 协议验证方法 | 268 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-test-protocol.md) |
+| 35 | Electron 桌面壳安全架构与启动流程 | analysis/asar-content/electron/ (140行) | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-electron-shell.md) |
+| 36 | ModelProvider API Key 注入机制 | api_key 字段为空时后端行为 | P0 | 源码分析 |
+| 36 | ModelProvider API Key 注入机制 | api_key 字段为空时后端行为 | P0 | 源码分析 |
+| 37 | TeamPolicy 并发控制与限流 | Go team_policy.go 3并发限制 | P0 | 源码分析 |
+| 38 | 前后端版本一致性协议 | Electron 壳与后端的版本协商 | P0 | 源码分析 |
+| 39 | Task Chunk 协议与 TaskLive 通信 | Go TaskChunk 格式 + HTTP/WS 双通道 | P0 | 源码分析 |
+| 40 | Proxy 测试覆盖完整性评估 | 哪个文件缺什么测试 | P0 | 源码分析 |
