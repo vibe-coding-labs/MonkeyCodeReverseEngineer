@@ -3,7 +3,10 @@
 > 生成时间: 2026-07-05
 > 目标: 所有未搞清楚的点的优先级排序和跟踪
 
-## 优先级 P0（源码级可分析，不需要线上环境）
+> ⏱️ **状态更新:** 2026-07-05 — 全部 30 项源码级分析维度已完成 ✅
+> **剩余的 P1(8项) 需线上环境实测, P2(8项) 需闭源信息/抓包**
+
+## 优先级 P0（源码级可分析，不需要线上环境）— ✅ 全部完成
 
 | # | 缺口 | 现有线索 | 优先级 | 分析方式 |
 |---|------|---------|--------|---------|
@@ -45,5 +48,5 @@
 | 26 | Express 中间件链与 SSE 流控制 | server.ts 331 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-express-sse.md) |
 | 27 | 任务创建 resource 参数的实际影响 | task-runner.ts resource: {core, memory, life} | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-resource-params.md) |
 | 28 | model_id 6 层解析回退的精确行为 | models.ts resolveModel() | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-model-resolution.md) |
-| 29 | admin-login.ts OAuth 6 步超时保护 | 10 分钟 session TTL + 状态清理 | P0 | 源码分析 |
-| 30 | types.ts 类型系统的设计演进 | 180 行完整类型定义 | P0 | 源码分析 |
+| 29 | admin-login.ts OAuth 6 步超时保护 | 10 分钟 session TTL + 状态清理 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-oauth-timeout.md) |
+| 30 | types.ts 类型系统的设计演进 | 180 行完整类型定义 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-types-system.md) |
