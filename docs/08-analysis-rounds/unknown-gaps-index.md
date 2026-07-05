@@ -50,3 +50,7 @@
 | 28 | model_id 6 层解析回退的精确行为 | models.ts resolveModel() | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-model-resolution.md) |
 | 29 | admin-login.ts OAuth 6 步超时保护 | 10 分钟 session TTL + 状态清理 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-oauth-timeout.md) |
 | 30 | types.ts 类型系统的设计演进 | 180 行完整类型定义 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-types-system.md) |
+| 31 | Python MVP oauth_login.py Playwright 自动化 | 461 行浏览器自动化 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-oauth-playwright.md) |
+| 32 | Python MVP proxy_real.py 完整实现 vs TS 代理 | 873 行 | P0 | 源码分析 | ✅ 已完成 → [报告](unknown-python-proxy.md) |
+| 33 | Python MVP test_auth.py 测试框架设计 | 498 行 | P0 | 源码分析 |
+| 34 | Python MVP test_protocol.py 协议验证方法 | 268 行 | P0 | 源码分析 |
