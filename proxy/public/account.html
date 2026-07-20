@@ -119,7 +119,7 @@
   <div class="grid grid-3">
     <div class="card">
       <div class="card-label">💰 账户余额</div>
-      <div class="card-value" :class="balanceClass">{{ formatBalance(balance) }} <span class="unit">元</span></div>
+      <div class="card-value">{{ formatNumber(balance) }}</div>
     </div>
     <div class="card">
       <div class="card-label">📊 今日已用 Token</div>
@@ -183,11 +183,6 @@ createApp({
       return Math.min(100, (usedTokens.value / dailyLimit.value) * 100);
     });
 
-    const balanceClass = computed(() => {
-      if (balance.value <= 0) return 'red';
-      if (balance.value < 5000) return 'amber';
-      return 'green';
-    });
     const dailyTokenClass = computed(() => {
       if (dailyTokenPercent.value >= 90) return 'red';
       if (dailyTokenPercent.value >= 70) return 'amber';
@@ -201,9 +196,6 @@ createApp({
     const statusText = computed(() => online.value ? '运行中' : '离线');
     const statusClass = computed(() => online.value ? 'online' : 'offline');
 
-    function formatBalance(val) {
-      return (val / 100).toFixed(2);
-    }
     function formatNumber(val) {
       return val.toLocaleString('zh-CN');
     }
@@ -276,8 +268,8 @@ createApp({
       userName, userId, userRole, userStatus, modelCount,
       subscriptionPlan, autoRenew, expiresAt,
       lastUpdate, online, error,
-      balanceClass, dailyTokenClass, dailyTokenBarClass, statusText, statusClass,
-      formatBalance, formatNumber, toggleTheme,
+      dailyTokenClass, dailyTokenBarClass, statusText, statusClass,
+      formatNumber, toggleTheme,
     };
   }
 }).mount('#app');
