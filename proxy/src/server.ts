@@ -6,6 +6,7 @@
 import express from "express"
 import cors from "cors"
 import path from "path"
+import { fileURLToPath } from "url"
 import { AuthManager } from "./auth.js"
 import { ModelManager } from "./models.js"
 import { TaskRunner } from "./task-runner.js"
@@ -103,6 +104,10 @@ async function main() {
   app.use(cors())
   app.use(express.json({ limit: "10mb" }))
 
+  // 静态文件 — 中转站前端页面
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+  app.use(express.static(path.join(__dirname, "../public")))
+
   // 健康检查
   app.get("/health", (_req, res) => {
     const poolStats = accountPool?.getStats()
@@ -170,6 +175,45 @@ async function main() {
     } catch (err: any) {
       res.status(500).json({ error: err.message })
     }
+  })
+
+  // Session 状态（前端用）
+  app.get("/admin/session-status", async (_req, res) => {
+    try {
+      const auth = singleAuth
+      if (!auth) {
+        res.json({ code: 0, data: { user: { name: "未配置", role: "-", status: "inactive" } } })
+        return
+      }
+      const cookie = auth.getSessionCookieSync()
+      if (!cookie) {
+        res.json({ code: 0, data: { user: { name: "未登录", role: "-", status: "inactive" } } })
+        return
+      }
+      const response = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/status`, {
+        headers: { Cookie: `${auth.getSessionCookieName()}=${cookie}`, "User-Agent": "Mozilla/5.0" },
+      })
+      const data = await response.json()
+      res.json(data)
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // 订阅信息（前端用，可能返回 404）
+  app.get("/admin/subscription", async (_req, res) => {
+    try {
+      const auth = singleAuth
+      if (!auth) { res.json({ plan: "未配置" }); return }
+      const cookie = auth.getSessionCookieSync()
+      if (!cookie) { res.json({ plan: "未登录" }); return }
+      const response = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/subscriptions/current`, {
+        headers: { Cookie: `${auth.getSessionCookieName()}=${cookie}`, "User-Agent": "Mozilla/5.0" },
+      })
+      if (!response.ok) { res.json({ plan: "未订阅" }); return }
+      const data = await response.json()
+      res.json(data.data || { plan: "未订阅" })
+    } catch { res.json({ plan: "未订阅" }) }
   })
 
   // 号池管理端点

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MonkeyCode 中转站 · 账号详情</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d2e;
+    --border: #2a2d3e;
+    --text: #e4e6f0;
+    --text-muted: #888ca0;
+    --primary: #6366f1;
+    --primary-glow: rgba(99,102,241,0.15);
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --radius: 12px;
+  }
+  [data-theme="light"] {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --border: #e2e4ed;
+    --text: #1a1d2e;
+    --text-muted: #6b7085;
+    --primary: #4f46e5;
+    --primary-glow: rgba(79,70,229,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    min-height: 100vh;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; transition: 0.2s;
+  }
+  .theme-toggle:hover { border-color: var(--primary); }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .status-badge.online { background: rgba(34,197,94,0.12); color: var(--green); }
+  .status-badge.offline { background: rgba(239,68,68,0.12); color: var(--red); }
+  .status-badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+  }
+  .status-badge.online::before { background: var(--green); }
+  .status-badge.offline::before { background: var(--red); }
+
+  .grid { display: grid; gap: 16px; margin-bottom: 24px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; transition: 0.2s;
+  }
+  .card:hover { border-color: var(--primary); box-shadow: 0 0 20px var(--primary-glow); }
+  .card-label { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card-value .unit { font-size: 14px; font-weight: 400; color: var(--text-muted); margin-left: 4px; }
+  .card-value.green { color: var(--green); }
+  .card-value.amber { color: var(--amber); }
+  .card-value.red { color: var(--red); }
+
+  .progress-bar {
+    height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%; border-radius: 3px; transition: width 0.5s ease;
+    background: linear-gradient(90deg, var(--primary), #818cf8);
+  }
+  .progress-bar .fill.warning { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+  .progress-bar .fill.danger { background: linear-gradient(90deg, var(--red), #f87171); }
+
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .label { color: var(--text-muted); font-size: 14px; }
+  .info-row .value { font-size: 14px; font-weight: 500; }
+
+  .last-update { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 24px; }
+  .error { color: var(--red); text-align: center; padding: 40px; font-size: 14px; }
+
+  @media (max-width: 640px) {
+    .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    body { padding: 16px; }
+    .card-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header">
+    <h1>⚡ MonkeyCode 中转站</h1>
+    <div class="header-right">
+      <span class="status-badge" :class="statusClass">{{ statusText }}</span>
+      <button class="theme-toggle" @click="toggleTheme">🌓 切换</button>
+    </div>
+  </div>
+
+  <!-- 余额概览 -->
+  <div class="grid grid-3">
+    <div class="card">
+      <div class="card-label">💰 账户余额</div>
+      <div class="card-value" :class="balanceClass">{{ formatBalance(balance) }} <span class="unit">元</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">📊 今日已用 Token</div>
+      <div class="card-value" :class="dailyTokenClass">{{ formatNumber(usedTokens) }}</div>
+      <div class="progress-bar"><div class="fill" :class="dailyTokenBarClass" :style="{ width: dailyTokenPercent + '%' }"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">🎯 每日 Token 限额</div>
+      <div class="card-value">{{ formatNumber(dailyLimit) }}</div>
+    </div>
+  </div>
+
+  <!-- 账号信息 -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-label" style="margin-bottom: 12px;">👤 当前账号</div>
+    <div class="info-row"><span class="label">用户名</span><span class="value">{{ userName }}</span></div>
+    <div class="info-row"><span class="label">用户 ID</span><span class="value" style="font-family: monospace;font-size:12px;">{{ userId }}</span></div>
+    <div class="info-row"><span class="label">角色</span><span class="value">{{ userRole }}</span></div>
+    <div class="info-row"><span class="label">状态</span><span class="value" style="color: var(--green);">{{ userStatus }}</span></div>
+    <div class="info-row"><span class="label">可用模型</span><span class="value">{{ modelCount }} 个</span></div>
+  </div>
+
+  <!-- 订阅信息 -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-label" style="margin-bottom: 12px;">📋 订阅信息</div>
+    <div class="info-row"><span class="label">订阅计划</span><span class="value">{{ subscriptionPlan }}</span></div>
+    <div class="info-row"><span class="label">自动续费</span><span class="value">{{ autoRenew }}</span></div>
+    <div class="info-row"><span class="label">到期时间</span><span class="value">{{ expiresAt }}</span></div>
+  </div>
+
+  <div class="last-update">⏱ 上次更新: {{ lastUpdate }}</div>
+  <div class="last-update" style="margin-top: 4px;">
+    <a href="https://vibe-coding-labs.github.io/MonkeyCodeReverseEngineer/" target="_blank" style="color:var(--primary);text-decoration:none;">📖 逆向工程分析全书</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" integrity="sha384-QMGqFj2qLJNy0uzQ4qSP5ZdYcHk2qS5LQUNQh84Bqgu0+QqBKqoQ5qzo3vQ3DBs" crossorigin="anonymous"></script>
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const balance = ref(0);
+    const dailyTokenBalance = ref(0);
+    const dailyLimit = ref(0);
+    const userName = ref('-');
+    const userId = ref('-');
+    const userRole = ref('-');
+    const userStatus = ref('-');
+    const modelCount = ref(0);
+    const subscriptionPlan = ref('未订阅');
+    const autoRenew = ref('-');
+    const expiresAt = ref('-');
+    const lastUpdate = ref('-');
+    const online = ref(false);
+    const error = ref('');
+
+    const usedTokens = computed(() => Math.max(0, dailyLimit.value - dailyTokenBalance.value));
+    const dailyTokenPercent = computed(() => {
+      if (dailyLimit.value === 0) return 0;
+      return Math.min(100, (usedTokens.value / dailyLimit.value) * 100);
+    });
+
+    const balanceClass = computed(() => {
+      if (balance.value <= 0) return 'red';
+      if (balance.value < 5000) return 'amber';
+      return 'green';
+    });
+    const dailyTokenClass = computed(() => {
+      if (dailyTokenPercent.value >= 90) return 'red';
+      if (dailyTokenPercent.value >= 70) return 'amber';
+      return 'green';
+    });
+    const dailyTokenBarClass = computed(() => {
+      if (dailyTokenPercent.value >= 90) return 'danger';
+      if (dailyTokenPercent.value >= 70) return 'warning';
+      return '';
+    });
+    const statusText = computed(() => online.value ? '运行中' : '离线');
+    const statusClass = computed(() => online.value ? 'online' : 'offline');
+
+    function formatBalance(val) {
+      return (val / 100).toFixed(2);
+    }
+    function formatNumber(val) {
+      return val.toLocaleString('zh-CN');
+    }
+
+    async function fetchData() {
+      try {
+        const [walletRes, statusRes, modelsRes, subRes] = await Promise.allSettled([
+          fetch('/admin/wallet'),
+          fetch('/admin/session-status'),
+          fetch('/v1/models'),
+          fetch('/admin/subscription'),
+        ]);
+
+        if (walletRes.status === 'fulfilled') {
+          const w = await walletRes.value.json();
+          if (w.code === 0 && w.data) {
+            balance.value = w.data.balance || 0;
+            dailyTokenBalance.value = w.data.daily_token_balance || 0;
+            dailyLimit.value = w.data.daily_token_limit || 0;
+          }
+        }
+
+        if (statusRes.status === 'fulfilled') {
+          const s = await statusRes.value.json();
+          if (s.code === 0 && s.data) {
+            const u = s.data.user || {};
+            userName.value = u.name || '-';
+            userId.value = u.id || '-';
+            userRole.value = u.role || '-';
+            userStatus.value = u.status || '-';
+            online.value = true;
+          }
+        }
+
+        if (modelsRes.status === 'fulfilled') {
+          const m = await modelsRes.value.json();
+          modelCount.value = (m.data || []).length;
+        }
+
+        if (subRes.status === 'fulfilled') {
+          const sub = await subRes.value.json();
+          if (sub.plan) {
+            subscriptionPlan.value = sub.plan;
+            autoRenew.value = sub.auto_renew ? '是' : '否';
+            expiresAt.value = sub.expires_at || '永久';
+          }
+        }
+
+        lastUpdate.value = new Date().toLocaleString('zh-CN');
+        error.value = '';
+      } catch (e) {
+        error.value = '加载失败: ' + e.message;
+        online.value = false;
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    onMounted(() => {
+      fetchData();
+      setInterval(fetchData, 30000);
+    });
+
+    return {
+      balance, dailyTokenBalance, dailyLimit, usedTokens, dailyTokenPercent,
+      userName, userId, userRole, userStatus, modelCount,
+      subscriptionPlan, autoRenew, expiresAt,
+      lastUpdate, online, error,
+      balanceClass, dailyTokenClass, dailyTokenBarClass, statusText, statusClass,
+      formatBalance, formatNumber, toggleTheme,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
