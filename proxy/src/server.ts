@@ -21,11 +21,13 @@ import {
   loginWithCallbackUrl,
 } from "./admin-login.js"
 
+const MONKEYCODE_BASE_URL = process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"
+
 const PORT = parseInt(process.env.PROXY_PORT || "9090", 10)
 
 async function main() {
   console.log("=== MonkeyCode Reverse Proxy ===")
-  console.log(`Target: ${process.env.MONKEYCODE_BASE_URL || "https://monkeycode-ai.com"}`)
+  console.log(`Target: ${MONKEYCODE_BASE_URL}`)
   console.log(`Port: ${PORT}`)
   console.log()
 
@@ -138,6 +140,33 @@ async function main() {
       modelManager.clearCache()
       const models = await modelManager.fetchModels()
       res.json({ status: "ok", count: models.length })
+    } catch (err: any) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // 钱包/余额查询
+  app.get("/admin/wallet", async (_req, res) => {
+    try {
+      const auth = singleAuth
+      if (!auth) {
+        res.status(400).json({ error: "No auth configured" })
+        return
+      }
+      const cookie = auth.getSessionCookieSync()
+      if (!cookie) {
+        res.status(400).json({ error: "No session cookie" })
+        return
+      }
+      const response = await fetch(`${MONKEYCODE_BASE_URL}/api/v1/users/wallet`, {
+        headers: {
+          Cookie: `${auth.getSessionCookieName()}=${cookie}`,
+          "User-Agent": "Mozilla/5.0",
+          "Content-Type": "application/json",
+        },
+      })
+      const data = await response.json()
+      res.json(data)
     } catch (err: any) {
       res.status(500).json({ error: err.message })
     }
@@ -309,6 +338,7 @@ async function main() {
     console.log(`  POST /v1/chat/completions  - Chat completion (streaming supported)`)
     console.log(`  POST /v1/responses         - Responses API (Codex native, streaming)`)
     console.log(`  GET  /health               - Health check`)
+    console.log(`  GET  /admin/wallet           - Query wallet balance`)
     console.log(`  POST /admin/session        - Set session cookie manually`)
     console.log(`  POST /admin/login/send-code  - Send SMS code (百智云 OAuth)`)
     console.log(`  POST /admin/login/verify     - Verify SMS code + login`)
