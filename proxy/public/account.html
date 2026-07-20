@@ -115,20 +115,28 @@
     </div>
   </div>
 
-  <!-- 余额概览 -->
+  <!-- 每日 Token 概览（核心） -->
   <div class="grid grid-3">
     <div class="card">
-      <div class="card-label">💰 账户余额</div>
-      <div class="card-value">{{ formatNumber(balance) }}</div>
+      <div class="card-label">📊 今日剩余 Token</div>
+      <div class="card-value" :class="dailyTokenClass">{{ formatNumber(dailyTokenBalance) }}</div>
+      <div class="progress-bar"><div class="fill" :class="dailyTokenBarClass" :style="{ width: (100 - dailyTokenPercent) + '%' }"></div></div>
     </div>
     <div class="card">
       <div class="card-label">📊 今日已用 Token</div>
       <div class="card-value" :class="dailyTokenClass">{{ formatNumber(usedTokens) }}</div>
-      <div class="progress-bar"><div class="fill" :class="dailyTokenBarClass" :style="{ width: dailyTokenPercent + '%' }"></div></div>
     </div>
     <div class="card">
       <div class="card-label">🎯 每日 Token 限额</div>
       <div class="card-value">{{ formatNumber(dailyLimit) }}</div>
+    </div>
+  </div>
+
+  <!-- 余额（次要） -->
+  <div class="grid grid-2" style="margin-bottom: 24px;">
+    <div class="card">
+      <div class="card-label">💰 余额</div>
+      <div class="card-value">{{ formatNumber(balance) }}</div>
     </div>
   </div>
 
